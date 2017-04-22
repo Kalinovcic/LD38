@@ -118,8 +118,9 @@ void entry()
     init();
 
     auto planet = add_planet();
-    planet->position = { 3000, 1000 };
+    planet->position = { 3000, 3000 };
     planet->radius = 1200.0;
+    camera_position = -planet->position;
 
     Entity e;
     e.planet = planet;
