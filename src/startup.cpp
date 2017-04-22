@@ -107,6 +107,7 @@ void handle_events()
             int scancode = event.key.keysym.scancode;
             if (scancode == SDL_SCANCODE_LEFT)  input_left  = down;
             if (scancode == SDL_SCANCODE_RIGHT) input_right = down;
+            if (scancode == SDL_SCANCODE_SPACE) input_space = down;
         } break;
         }
     }
@@ -118,23 +119,24 @@ void entry()
 
     auto planet = add_planet();
     planet->position = { 3000, 1000 };
-    planet->radius = 600.0;
+    planet->radius = 1200.0;
 
     Entity e;
     e.planet = planet;
     e.brain = ENTITY_STATIC;
     e.layer = LAYER_BACK_DECORATION;
-    for (int i = 0; i < 150; i++)
+    e.y_velocity = 0;
+    for (int i = 0; i < 250; i++)
     {
         e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
-        e.angle = i / (float) 150 * 2 * PI;
+        e.angle = i / (float) 250 * TAU;
 
         vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
         e.size = { 50, 50 };
         e.size *= texture_size / texture_size.y;
 
         float offset = (rand() % 1000) / 1000.0;
-        e.offset = -(e.size.y * 0.1 + offset * offset * offset * 100.0);
+        e.offset = -(e.size.y * 0.1 + offset * offset * 50.0);
 
         planet->entities.push_back(e);
     }
@@ -142,7 +144,7 @@ void entry()
     for (int i = 0; i < 100; i++)
     {
         e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
-        e.angle = i / (float) 100 * 2 * PI;
+        e.angle = i / (float) 100 * TAU;
 
         vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
         e.size = { 50, 50 };
@@ -153,13 +155,41 @@ void entry()
 
         planet->entities.push_back(e);
     }
+    e.offset = 0;
+    for (int i = 0; i < 30; i++)
+    {
+        e.texture = (Texture)(TEXTURE_TALLPLANT1 + rand() % 1);
+        e.angle = (rand() % 1000) / 1000.0 * TAU;
+
+        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
+        e.size = { 120, 120 };
+        e.size *= texture_size / texture_size.y;
+
+        planet->entities.push_back(e);
+    }
     e.layer = LAYER_ACTORS;
     e.texture = TEXTURE_PLAYER;
     e.brain = ENTITY_PLAYER;
-    e.size = { 150, 150 };
+    e.size = { 100, 100 };
     e.angle = 0;
     e.offset = 0;
     planet->entities.push_back(e);
+    e.texture = TEXTURE_STUPID;
+    e.brain = ENTITY_ENEMY;
+    for (int i = 0; i < 20; i++)
+    {
+        e.angle = i / (float) 20 * TAU;
+        planet->entities.push_back(e);
+    }
+    e.layer = LAYER_BACK_DECORATION;
+    e.texture = TEXTURE_TREE1;
+    e.brain = ENTITY_STATIC;
+    e.size = { 400, 400 };
+    for (int i = 0; i < 10; i++)
+    {
+        e.angle = (i + 0.25) / 10.0 * TAU;
+        planet->entities.push_back(e);
+    }
 
     while (!game_requests_close)
     {

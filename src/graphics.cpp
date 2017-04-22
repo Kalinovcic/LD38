@@ -12,6 +12,7 @@ stbrp_node the_atlas_packing_nodes[ATLAS_SIZE * 2];
 stbrp_context the_packing_context;
 stbrp_rect the_atlas_rects[TEXTURE_COUNT];
 uint8* the_atlas_textures[TEXTURE_COUNT];
+vector<Platform> texture_platforms[TEXTURE_COUNT];
 
 GLuint the_atlas_texture;
 vec2 atlas_low[TEXTURE_COUNT];
@@ -45,13 +46,31 @@ void end_atlas()
         atlas_high[texture].x = atlas_low[texture].x + texture_width  / (float) ATLAS_SIZE;
         atlas_high[texture].y = atlas_low[texture].y + texture_height / (float) ATLAS_SIZE;
 
-        for (int tx = 0; tx < texture_width; tx++)
+        for (int ty = 0; ty < texture_height; ty++)
         {
-            int ax = rect->x + tx + ATLAS_PADDING;
-            for (int ty = 0; ty < texture_height; ty++)
+            int ay = rect->y + (texture_height - ty - 1) + ATLAS_PADDING;
+            int platform_x = -1;
+            for (int tx = 0; tx < texture_width; tx++)
             {
-                int ay = rect->y + (texture_height - ty - 1) + ATLAS_PADDING;
-                memcpy(atlas_data + (ay * ATLAS_SIZE + ax) * 4, data + (ty * texture_width + tx) * 4, 4);
+                int ax = rect->x + tx + ATLAS_PADDING;
+                auto pixel = data + (ty * texture_width + tx) * 4;
+                bool pink = pixel[0] == 255 && pixel[1] == 0 && pixel[2] == 255 && pixel[3] == 255;
+                if (pink)
+                {
+                    if (platform_x == -1) platform_x = tx;
+                    pixel[0] = pixel[1] = pixel[2] = pixel[3] = 0;
+                }
+                if (platform_x != -1 && (tx == (texture_width - 1) || !pink))
+                {
+                    int platform_width = tx - platform_x + 1;
+                    Platform platform;
+                    platform.x = platform_x / (float) texture_width;
+                    platform.y = 1 - (ty + 2) / (float) texture_height;
+                    platform.width = platform_width / (float) texture_width;
+                    texture_platforms[texture].push_back(platform);
+                    platform_x = -1;
+                }
+                memcpy(atlas_data + (ay * ATLAS_SIZE + ax) * 4, pixel, 4);
             }
         }
     }
@@ -88,10 +107,13 @@ void create_atlas()
     add_texture(TEXTURE_PLANET, "planet.png");
     add_texture(TEXTURE_PLANET_GLOW, "planet_glow.png");
     add_texture(TEXTURE_PLAYER, "player.png");
+    add_texture(TEXTURE_STUPID, "stupid.png");
     add_texture(TEXTURE_PLANT1, "plant1.png");
     add_texture(TEXTURE_PLANT2, "plant2.png");
     add_texture(TEXTURE_PLANT3, "plant3.png");
     add_texture(TEXTURE_PLANT4, "plant4.png");
+    add_texture(TEXTURE_TALLPLANT1, "tallplant1.png");
+    add_texture(TEXTURE_TREE1, "tree1.png");
     end_atlas();
 }
 

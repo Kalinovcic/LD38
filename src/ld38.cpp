@@ -4,7 +4,9 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <algorithm>
 #include <vector>
+using std::sort;
 using std::vector;
 
 #include "GL/glew.h"
@@ -55,7 +57,8 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-#define PI 3.14159265
+#define PI  3.14159265359
+#define TAU 6.28318530718
 
 char* get_run_tree_path();
 void report(const char* message);
@@ -67,10 +70,13 @@ enum Texture
     TEXTURE_PLANET,
     TEXTURE_PLANET_GLOW,
     TEXTURE_PLAYER,
+    TEXTURE_STUPID,
     TEXTURE_PLANT1,
     TEXTURE_PLANT2,
     TEXTURE_PLANT3,
     TEXTURE_PLANT4,
+    TEXTURE_TALLPLANT1,
+    TEXTURE_TREE1,
 
     TEXTURE_COUNT
 };
@@ -78,6 +84,7 @@ enum Texture
 enum Entity_Kind
 {
     ENTITY_PLAYER,
+    ENTITY_ENEMY,
     ENTITY_STATIC,
 };
 
@@ -101,6 +108,7 @@ struct Entity
     float offset;
     float angle;
     vec2 size;
+    float y_velocity;
 };
 
 struct Planet
@@ -108,12 +116,21 @@ struct Planet
     vec2 position;
     float radius;
     vector<Entity> entities;
+    vector<int> remove_list;
+};
+
+struct Platform
+{
+    float x;
+    float y;
+    float width;
 };
 
 #define DEG2RAD 0.0174533
 
 bool input_left;
 bool input_right;
+bool input_space;
 
 SDL_Window* the_window = NULL;
 
