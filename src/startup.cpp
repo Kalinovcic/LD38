@@ -1,5 +1,4 @@
 
-SDL_Window* the_window = NULL;
 SDL_GLContext the_context = NULL;
 
 void APIENTRY opengl_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
@@ -33,19 +32,23 @@ void init_graphics()
         report("SDL2 failed to initialize!");
     }
 
-    int context_flags = 0;
-    SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &context_flags);
-    context_flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, context_flags);
-
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    the_window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    auto window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+    the_window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
     if (!the_window)
     {
         report("SDL2 failed to create a window!");
     }
+    SDL_SetWindowFullscreen(the_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_ShowWindow(the_window);
 
     the_context = SDL_GL_CreateContext(the_window);
     if (!the_context)
@@ -85,6 +88,10 @@ void quit()
 
 void handle_events()
 {
+    int window_width, window_height;
+    SDL_GetWindowSize(the_window, &window_width, &window_height);
+    glViewport(0, 0, window_width, window_height);
+
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -94,6 +101,13 @@ void handle_events()
         {
             game_requests_close = true;
         } break;
+        case SDL_KEYDOWN: case SDL_KEYUP:
+        {
+            bool down = event.type == SDL_KEYDOWN;
+            int scancode = event.key.keysym.scancode;
+            if (scancode == SDL_SCANCODE_LEFT)  input_left  = down;
+            if (scancode == SDL_SCANCODE_RIGHT) input_right = down;
+        } break;
         }
     }
 }
@@ -101,20 +115,65 @@ void handle_events()
 void entry()
 {
     init();
+
+    auto planet = add_planet();
+    planet->position = { 3000, 1000 };
+    planet->radius = 600.0;
+
+    Entity e;
+    e.planet = planet;
+    e.brain = ENTITY_STATIC;
+    e.layer = LAYER_BACK_DECORATION;
+    for (int i = 0; i < 150; i++)
+    {
+        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
+        e.angle = i / (float) 150 * 2 * PI;
+
+        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
+        e.size = { 50, 50 };
+        e.size *= texture_size / texture_size.y;
+
+        float offset = (rand() % 1000) / 1000.0;
+        e.offset = -(e.size.y * 0.1 + offset * offset * offset * 100.0);
+
+        planet->entities.push_back(e);
+    }
+    e.layer = LAYER_FRONT_DECORATION;
+    for (int i = 0; i < 100; i++)
+    {
+        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
+        e.angle = i / (float) 100 * 2 * PI;
+
+        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
+        e.size = { 50, 50 };
+        e.size *= texture_size / texture_size.y;
+
+        float offset = (rand() % 1000) / 1000.0;
+        e.offset = -(e.size.y * 0.1 + offset * offset * offset * 20.0);
+
+        planet->entities.push_back(e);
+    }
+    e.layer = LAYER_ACTORS;
+    e.texture = TEXTURE_PLAYER;
+    e.brain = ENTITY_PLAYER;
+    e.size = { 150, 150 };
+    e.angle = 0;
+    e.offset = 0;
+    planet->entities.push_back(e);
+
     while (!game_requests_close)
     {
         handle_events();
+        
+        update_planets();
 
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        camera_rotation += 0.1 / 180.0 * PI;
-        camera_position = { -(5 + sin(camera_rotation) * 2), -(5 + cos(camera_rotation) * 2) };
-
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         begin_batch();
-        draw_planet(vec2(5, 5), 2.0);
+        draw_planets();
         end_batch();
-
+        
         SDL_GL_SwapWindow(the_window);
     }
+
     quit();
 }

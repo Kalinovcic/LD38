@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <vector>
+using std::vector;
+
 #include "GL/glew.h"
 #include "GL/gl.h"
 #include "GL/glu.h"
@@ -59,6 +62,61 @@ void report(const char* message);
 
 #include "util.cpp"
 
+enum Texture
+{
+    TEXTURE_PLANET,
+    TEXTURE_PLANET_GLOW,
+    TEXTURE_PLAYER,
+    TEXTURE_PLANT1,
+    TEXTURE_PLANT2,
+    TEXTURE_PLANT3,
+    TEXTURE_PLANT4,
+
+    TEXTURE_COUNT
+};
+
+enum Entity_Kind
+{
+    ENTITY_PLAYER,
+    ENTITY_STATIC,
+};
+
+enum Layer
+{
+    LAYER_BACK_DECORATION,
+    LAYER_ACTORS,
+    LAYER_FRONT_DECORATION,
+
+    LAYER_COUNT
+};
+
+struct Planet;
+
+struct Entity
+{
+    Planet* planet;
+    Layer layer;
+    Texture texture;
+    Entity_Kind brain;
+    float offset;
+    float angle;
+    vec2 size;
+};
+
+struct Planet
+{
+    vec2 position;
+    float radius;
+    vector<Entity> entities;
+};
+
+#define DEG2RAD 0.0174533
+
+bool input_left;
+bool input_right;
+
+SDL_Window* the_window = NULL;
+
 char* folder_run_tree   = get_run_tree_path();
 char* folder_data       = concat(folder_run_tree, "data\\");
 char* folder_shaders    = concat(folder_data, "shaders\\");
@@ -75,12 +133,14 @@ void entry();
 
 #include "win32.cpp"
 #include "graphics.cpp"
+#include "entity.cpp"
+#include "planet.cpp"
 #include "startup.cpp"
 
 }
 
 // int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-int main()
+int main(int argc, char** argv)
 {
     ld38::entry();
     return EXIT_SUCCESS;

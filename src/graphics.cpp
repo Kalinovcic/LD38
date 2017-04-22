@@ -6,14 +6,6 @@ GLuint the_shader;
 // atlas
 //////////////////
 
-enum Texture
-{
-    TEXTURE_PLANET,
-    TEXTURE_GRASS,
-
-    TEXTURE_COUNT
-};
-
 const int ATLAS_PADDING = 2;
 const int ATLAS_SIZE = 1024;
 stbrp_node the_atlas_packing_nodes[ATLAS_SIZE * 2];
@@ -62,7 +54,6 @@ void end_atlas()
                 memcpy(atlas_data + (ay * ATLAS_SIZE + ax) * 4, data + (ty * texture_width + tx) * 4, 4);
             }
         }
-        stbi_image_free(data);
     }
 
     glGenTextures(1, &the_atlas_texture);
@@ -78,7 +69,6 @@ void end_atlas()
 void add_texture(Texture id, char* name)
 {
     auto path = concat(folder_textures, name);
-    defer(free(path));
 
     int width, height, channels;
     auto bytes = (uint8*) stbi_load(path, &width, &height, &channels, 4);
@@ -96,7 +86,12 @@ void create_atlas()
 {
     begin_atlas();
     add_texture(TEXTURE_PLANET, "planet.png");
-    add_texture(TEXTURE_GRASS, "grass.png");
+    add_texture(TEXTURE_PLANET_GLOW, "planet_glow.png");
+    add_texture(TEXTURE_PLAYER, "player.png");
+    add_texture(TEXTURE_PLANT1, "plant1.png");
+    add_texture(TEXTURE_PLANT2, "plant2.png");
+    add_texture(TEXTURE_PLANT3, "plant3.png");
+    add_texture(TEXTURE_PLANT4, "plant4.png");
     end_atlas();
 }
 
@@ -121,7 +116,11 @@ vec2 camera_position;
 
 void begin_batch()
 {
-    mat4 camera_transform = rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
+    int window_width, window_height;
+    SDL_GetWindowSize(the_window, &window_width, &window_height);
+    mat4 camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1)) * rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
+
+    glBindVertexArray(the_vertex_array);
 
     glUseProgram(the_shader);
 
@@ -146,7 +145,6 @@ void end_batch()
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) 0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) 8);
 
@@ -170,6 +168,24 @@ void batch_triangle(Vertex a, Vertex b, Vertex c)
     batch_vertices[current_batch_size + 1] = b;
     batch_vertices[current_batch_size + 2] = c;
     current_batch_size += 3;
+}
+
+void draw_rectangle(Texture texture, vec2 bottom, vec2 size, float angle)
+{
+    float s0 = 0.5 * size.x * sin(angle + PI / 2);
+    float c0 = 0.5 * size.x * cos(angle + PI / 2);
+    float s1 = size.y * sin(angle);
+    float c1 = size.y * cos(angle);
+
+    auto low  = atlas_low [texture];
+    auto high = atlas_high[texture];
+    Vertex rectangle[4];
+    rectangle[0] = { bottom.x - s0, bottom.y - c0,  low.x, low.y };
+    rectangle[1] = { bottom.x + s0, bottom.y + c0, high.x, low.y };
+    rectangle[2] = { bottom.x + s0 + s1, bottom.y + c0 + c1, high.x, high.y };
+    rectangle[3] = { bottom.x - s0 + s1, bottom.y - c0 + c1,  low.x, high.y };
+    batch_triangle(rectangle[0], rectangle[1], rectangle[2]);
+    batch_triangle(rectangle[0], rectangle[3], rectangle[2]);
 }
 
 void draw_circle(Texture texture, vec2 pos, float radius, int detail, float angle)
@@ -196,16 +212,6 @@ void draw_circle(Texture texture, vec2 pos, float radius, int detail, float angl
     }
 }
 
-void draw_planet(vec2 pos, float radius)
-{
-    draw_circle(TEXTURE_PLANET, pos, radius, 16, 0);
-    for (int i = 0; i < 100; i++)
-    {
-        float a = i / (float) 100 * 2 * PI;
-        draw_circle(TEXTURE_GRASS, pos + vec2(sin(a), cos(a)) * radius, 0.05, 8, a);
-    }
-}
-
 
 //////////////////
 // generic stuff
@@ -215,13 +221,9 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
 {
     char* vertex_path   = concat(folder_shaders, vertex_name);
     char* fragment_path = concat(folder_shaders, fragment_name);
-    defer(free(vertex_path));
-    defer(free(fragment_path));
 
     GLchar* vertex_source   = (GLchar*) read_entire_file(vertex_path);
     GLchar* fragment_source = (GLchar*) read_entire_file(fragment_path);
-    defer(free(vertex_source));
-    defer(free(fragment_source));
 
     GLint result = GL_FALSE;
     int info_log_length;
@@ -237,7 +239,6 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
     if (info_log_length)
     {
         char* message = (char*) malloc(info_log_length);
-        defer(free(message));
         glGetShaderInfoLog(vertex_shader, info_log_length, NULL, message);
         fprintf(stderr, "%s\n", message);
     }
@@ -250,7 +251,6 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
     if (info_log_length)
     {
         char* message = (char*) malloc(info_log_length);
-        defer(free(message));
         glGetShaderInfoLog(fragment_shader, info_log_length, NULL, message);
         fprintf(stderr, "%s\n", message);
     }
@@ -265,7 +265,6 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
     if (info_log_length)
     {
         char* message = (char*) malloc(info_log_length);
-        defer(free(message));
         glGetProgramInfoLog(program, info_log_length, NULL, message);
         fprintf(stderr, "%s\n", message);
     }
@@ -281,7 +280,7 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
 
 void init_opengl()
 {
-    glClearColor(0, 0, 0, 1);
+    glClearColor(86/255.0, 162/255.0, 239/255.0, 1);
 
     glGenVertexArrays(1, &the_vertex_array);
     glBindVertexArray(the_vertex_array);

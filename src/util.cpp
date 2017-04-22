@@ -3,7 +3,7 @@ char* concat(char* left, char* right)
 {
     auto len_left = strlen(left);
     auto len_right = strlen(right);
-    auto together = (char*) malloc(len_left + len_right + 0);
+    auto together = (char*) malloc(len_left + len_right + 1);
     memcpy(together, left, len_left);
     memcpy(together + len_left, right, len_right);
     together[len_left + len_right] = 0;
