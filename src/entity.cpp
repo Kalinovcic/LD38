@@ -127,8 +127,9 @@ void update_entity(Entity* entity)
             }
         }
 
-        camera_rotation += (entity->angle - camera_rotation) * 0.2;
-        camera_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * entity->planet->radius);
+        vec2 target_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * (entity->planet->radius + entity->offset));
+        camera_rotation += (entity->angle - camera_rotation) * 0.2f;
+        camera_position += (target_position - camera_position) * 0.1f;
     } break;
     case ENTITY_ENEMY:
     {
