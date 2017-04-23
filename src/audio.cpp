@@ -13,10 +13,9 @@ Mix_Chunk* load_sound_effect(char* name)
 
 void play_sound_effect(Mix_Chunk* chunk, vec2 source_position, float volume_multiplier)
 {
-    static const float SOUND_CONSTANT_DISTANCE = 300;
-    static const float SOUND_FALLOFF_DISTANCE  = 700;
+    static const float SOUND_CONSTANT_DISTANCE = 400;
+    static const float SOUND_FALLOFF_DISTANCE  = 500;
 
-    int channel = Mix_PlayChannel(-1, chunk, 0);
     float distance = length(source_position + camera_position);
     float volume;
     if (distance <= SOUND_CONSTANT_DISTANCE)
@@ -24,8 +23,9 @@ void play_sound_effect(Mix_Chunk* chunk, vec2 source_position, float volume_mult
     else if (distance <= SOUND_CONSTANT_DISTANCE + SOUND_FALLOFF_DISTANCE)
         volume = (1.0 - (distance - SOUND_CONSTANT_DISTANCE) / SOUND_FALLOFF_DISTANCE) * MIX_MAX_VOLUME;
     else
-        volume = 0;
+        return;
     volume *= volume_multiplier;
+    int channel = Mix_PlayChannel(-1, chunk, 0);
     Mix_Volume(channel, (int) volume);
 }
 

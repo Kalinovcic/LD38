@@ -51,48 +51,55 @@ void draw_planet(Planet* planet)
     }
 }
 
-void populate_planet_with_plants(Planet* planet)
+void populate_angle_with_plants(Planet* planet, float angle, float angle_width, float base_offset)
 {
-    srand(time(0));
-
     Entity e;
     e.flags = ENTITY_FLAG_INFESTED;
     e.planet = planet;
     e.brain = ENTITY_STATIC;
     e.layer = LAYER_BACK_DECORATION;
     e.y_velocity = 0;
-    for (int i = 0; i < 100; i++)
+    int count = (int)(angle_width / TAU * 100 + 0.5);
+    for (int i = 0; i < count; i++)
     {
         e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
-        e.angle = i / (float) 100 * TAU;
+        e.angle = angle + i / (float) count * angle_width;
         e.size = scale_to_height(e.texture, 50);
 
         float offset = (rand() % 1000) / 1000.0;
-        e.offset = -(e.size.y * 0.1 + offset * offset * 50.0);
+        e.offset = base_offset - (e.size.y * 0.1 + offset * offset * 50.0);
 
         planet->entities.push_back(e);
     }
     e.layer = LAYER_VERY_FRONT_DECORATION;
-    for (int i = 0; i < 60; i++)
+    count = (int)(angle_width / TAU * 60 + 0.5);
+    for (int i = 0; i < angle_width / TAU * 60; i++)
     {
         e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
-        e.angle = i / (float) 60 * TAU;
+        e.angle = angle + i / (float) count * angle_width;
         e.size = scale_to_height(e.texture, 50);
 
         float offset = (rand() % 1000) / 1000.0;
-        e.offset = -(e.size.y * 0.1 + offset * offset * offset * 20.0);
+        e.offset = base_offset - (e.size.y * 0.1 + offset * offset * offset * 20.0);
 
         planet->entities.push_back(e);
     }
-    e.offset = 0;
-    for (int i = 0; i < 15; i++)
+    e.offset = base_offset;
+    count = (int)(angle_width / TAU * 15 + 0.5);
+    for (int i = 0; i < angle_width / TAU * 15; i++)
     {
         e.texture = (Texture)(TEXTURE_EVILTALLPLANT1 + rand() % (TEXTURE_EVILTALLPLANT_LAST - TEXTURE_EVILTALLPLANT1));
-        e.angle = (rand() % 1000) / 1000.0 * TAU;
+        e.angle = angle + (rand() % 1000) / 1000.0 * angle_width;
         e.size = scale_to_height(e.texture, 120);
 
         planet->entities.push_back(e);
     }
+}
+
+void populate_planet_with_plants(Planet* planet)
+{
+    srand(time(0));
+    populate_angle_with_plants(planet, 0, TAU, 0);
 }
 
 void place_platforms(Planet* planet, Texture texture, float width, float angle_from, float angle_to, float offset)

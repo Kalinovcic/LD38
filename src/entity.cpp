@@ -354,6 +354,8 @@ void update_entity(Entity* entity, int entity_index)
         vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
         vec2 down = normalize(entity->planet->position - my_bottom);
 
+        float ground_offset = ground(entity);
+
         vec2 velocity = vec2(entity->x_velocity, entity->y_velocity);
         my_bottom += velocity / 60.0f;
         velocity += down * 1400.0f / 60.0f;
@@ -381,7 +383,6 @@ void update_entity(Entity* entity, int entity_index)
         entity->offset = length(my_bottom - entity->planet->position) - entity->planet->radius;
         entity->angle = atan2(dx, dy);
 
-        float ground_offset = ground(entity);
         if (entity->offset <= ground_offset)
         {
             if (!(entity->flags & ENTITY_FLAG_MUTE))
