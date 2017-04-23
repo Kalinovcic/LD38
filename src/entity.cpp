@@ -125,6 +125,40 @@ void update_entity(Entity* entity)
                     }
                 }
             }
+
+            vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
+            vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
+            if (length(my_bottom - other_bottom) < 80)
+            {
+                bool converted = false;
+                if (other->texture >= TEXTURE_EVILPLANT1 && other->texture < TEXTURE_EVILPLANT_LAST)
+                {
+                    other->texture = (Texture)(TEXTURE_PLANT1 + (other->texture - TEXTURE_EVILPLANT1));
+                    converted = true;
+                }
+                if (other->texture >= TEXTURE_EVILTALLPLANT1 && other->texture < TEXTURE_EVILTALLPLANT_LAST)
+                {
+                    other->texture = (Texture)(TEXTURE_TALLPLANT1 + (other->texture - TEXTURE_EVILTALLPLANT1));
+                    converted = true;
+                }
+
+                if (converted)
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        Particle p;
+                        p.texture = (Texture)(TEXTURE_SPARKLE1 + rand() % (TEXTURE_SPARKLE_LAST - TEXTURE_SPARKLE1));
+                        p.position = other_bottom + vec2(rand() % 1000 / 1000.0 * 8.0, rand() % 1000 / 1000.0 * 8.0);
+                        p.velocity = normalize(p.position - other->planet->position) * (float)(rand() % 1000 / 1000.0 * 700.0);
+                        p.acceleration = { 0, 0 };
+                        p.damping = 0.99;
+                        p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+                        p.wobble = (float)(rand() % 1000 / 1000.0 * 20.0);
+                        p.size = 12.0;
+                        other->planet->particles.push_back(p);
+                    }
+                }
+            }
         }
 
         vec2 target_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * (entity->planet->radius + entity->offset));
@@ -133,6 +167,41 @@ void update_entity(Entity* entity)
     } break;
     case ENTITY_ENEMY:
     {
+        float ground_offset = ground(entity);
+        entity->offset += entity->y_velocity / 60.0;
+        if (entity->offset <= ground_offset)
+        {
+            entity->offset = ground_offset;
+            entity->y_velocity = 0;
+        }
+        else
+        {
+            entity->y_velocity -= GRAVITY / 60.0;
+        }
+
+        if (rand() % 100 == 0)
+        {
+            vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y);
+            vec2 up = normalize(my_top - entity->planet->position);
+
+            Particle p;
+            p.flags = PARTICLE_PROJECTILE;
+            p.texture = TEXTURE_FIRE;
+            p.position = my_top;
+            p.acceleration = -up * 1300.0f;
+            p.damping = 0.98;
+            p.life = 5.0;
+            p.wobble = 10.0;
+            p.size = 18.0;
+
+            for (int i = 0; i < 6; i++)
+            {
+                float hor = (i - 2.5) / 2.0;
+                p.velocity = up * 400.0f;
+                p.velocity += vec2(-up.y, up.x) * hor * 250.0f;
+                entity->planet->particles.push_back(p);
+            }
+        }
     } break;
     }
 }

@@ -113,7 +113,24 @@ void create_atlas()
     add_texture(TEXTURE_PLANT3, "plant3.png");
     add_texture(TEXTURE_PLANT4, "plant4.png");
     add_texture(TEXTURE_TALLPLANT1, "tallplant1.png");
+    add_texture(TEXTURE_TALLPLANT2, "tallplant2.png");
+    add_texture(TEXTURE_TALLPLANT3, "tallplant3.png");
+    add_texture(TEXTURE_TALLPLANT4, "tallplant4.png");
+    add_texture(TEXTURE_TALLPLANT5, "tallplant5.png");
     add_texture(TEXTURE_TREE1, "tree1.png");
+    add_texture(TEXTURE_PILLAR, "pillar.png");
+    add_texture(TEXTURE_EVILPLANT1, "evilplant1.png");
+    add_texture(TEXTURE_EVILPLANT2, "evilplant2.png");
+    add_texture(TEXTURE_EVILPLANT3, "evilplant3.png");
+    add_texture(TEXTURE_EVILPLANT4, "evilplant4.png");
+    add_texture(TEXTURE_EVILTALLPLANT1, "eviltallplant1.png");
+    add_texture(TEXTURE_EVILTALLPLANT2, "eviltallplant2.png");
+    add_texture(TEXTURE_EVILTALLPLANT3, "eviltallplant3.png");
+    add_texture(TEXTURE_EVILTALLPLANT4, "eviltallplant4.png");
+    add_texture(TEXTURE_EVILTALLPLANT5, "eviltallplant5.png");
+    add_texture(TEXTURE_SPARKLE1, "sparkle1.png");
+    add_texture(TEXTURE_SPARKLE2, "sparkle2.png");
+    add_texture(TEXTURE_FIRE, "fire.png");
     end_atlas();
 }
 
@@ -132,22 +149,28 @@ struct Vertex
 const int BATCH_SIZE = 8192;
 Vertex batch_vertices[BATCH_SIZE];
 int current_batch_size = 0;
+GLuint current_batch_atlas;
+bool current_batch_gui;
 
 float camera_rotation;
 vec2 camera_position;
 
-void begin_batch()
+void begin_batch(GLuint atlas, bool gui = false)
 {
-    int window_width, window_height;
-    SDL_GetWindowSize(the_window, &window_width, &window_height);
-    mat4 camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1)) * rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
+    mat4 camera_transform;
+    if (gui)
+        camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1));
+    else
+        camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1)) * rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
 
     glBindVertexArray(the_vertex_array);
 
     glUseProgram(the_shader);
 
+    current_batch_gui = gui;
+    current_batch_atlas = atlas;
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, the_atlas_texture);
+    glBindTexture(GL_TEXTURE_2D, current_batch_atlas);
     glUniform1i(glGetUniformLocation(the_shader, "atlas"), 0);
     glUniformMatrix4fv(glGetUniformLocation(the_shader, "transform"), 1, GL_FALSE, (GLfloat*) &camera_transform);
 
@@ -183,7 +206,7 @@ void batch_triangle(Vertex a, Vertex b, Vertex c)
     if (current_batch_size + 3 >= BATCH_SIZE)
     {
         end_batch();
-        begin_batch();
+        begin_batch(current_batch_atlas, current_batch_gui);
     }
 
     batch_vertices[current_batch_size + 0] = a;
@@ -234,6 +257,70 @@ void draw_circle(Texture texture, vec2 pos, float radius, int detail, float angl
     }
 }
 
+//////////////////
+// font
+//////////////////
+
+const int FONT_BITMAP_SIZE = 1024;
+
+void load_font(Font* font, char* name)
+{
+    char* path = concat(folder_fonts, name);
+    defer(free(path));
+    uint8* ttf = (uint8*) read_entire_file(path);
+    defer(free(ttf));
+
+    auto alphamap = (uint8*) malloc(FONT_BITMAP_SIZE * FONT_BITMAP_SIZE);
+    defer(free(alphamap));
+    stbtt_BakeFontBitmap(ttf, 0, 32.0, alphamap, FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, 32, 96, &font->cdata[0]);
+
+    auto bitmap = (uint8*) malloc(FONT_BITMAP_SIZE * FONT_BITMAP_SIZE * 4);
+    defer(free(bitmap));
+    for (int y = 0; y < FONT_BITMAP_SIZE; y++)
+    {
+        for (int x = 0; x < FONT_BITMAP_SIZE; x++)
+        {
+            int ia = y * FONT_BITMAP_SIZE + x;
+            int ib = ia * 4;
+            bitmap[ib] = bitmap[ib + 1] = bitmap[ib + 2] = 1;
+            bitmap[ib + 3] = alphamap[ia];
+        }
+    }
+
+    glGenTextures(1, &font->texture);
+    glBindTexture(GL_TEXTURE_2D, font->texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
+
+void render_string(Font* font, float x, float y, float scale, char* text)
+{
+    end_batch();
+    begin_batch(font->texture, true);
+
+    float tx = 0, ty = 0;
+    while (*text)
+    {
+        if (*text >= 32 && *text < 128)
+        {
+            stbtt_aligned_quad q;
+            stbtt_GetBakedQuad(&font->cdata[0], FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, *text - 32, &tx, &ty, &q, 1);
+
+            Vertex rectangle[4];
+            rectangle[0] = { x + scale * q.x0, y + scale * q.y0, q.s0, q.t1 };
+            rectangle[1] = { x + scale * q.x1, y + scale * q.y0, q.s1, q.t1 };
+            rectangle[2] = { x + scale * q.x1, y + scale * q.y1, q.s1, q.t0 };
+            rectangle[3] = { x + scale * q.x0, y + scale * q.y1, q.s0, q.t0 };
+
+            batch_triangle(rectangle[0], rectangle[1], rectangle[2]);
+            batch_triangle(rectangle[0], rectangle[3], rectangle[2]);
+        }
+        text++;
+    }
+
+    end_batch();
+}
 
 //////////////////
 // generic stuff
@@ -309,4 +396,5 @@ void init_opengl()
 
     the_shader = load_shader("test.vs", "test.fs");
     create_atlas();
+    load_font(&regular_font, "Newlandn.ttf");
 }

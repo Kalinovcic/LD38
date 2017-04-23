@@ -88,7 +88,6 @@ void quit()
 
 void handle_events()
 {
-    int window_width, window_height;
     SDL_GetWindowSize(the_window, &window_width, &window_height);
     glViewport(0, 0, window_width, window_height);
 
@@ -117,91 +116,88 @@ void entry()
 {
     init();
 
-    auto planet = add_planet();
-    planet->position = { 3000, 3000 };
-    planet->radius = 1200.0;
-    camera_position = -planet->position;
+    Planet planet;
+    planet.position = { 3000, 3000 };
+    planet.radius = 500.0;
+    camera_position = -planet.position;
+
+    populate_planet_with_plants(&planet);
 
     Entity e;
-    e.planet = planet;
-    e.brain = ENTITY_STATIC;
-    e.layer = LAYER_BACK_DECORATION;
-    e.y_velocity = 0;
-    for (int i = 0; i < 250; i++)
-    {
-        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
-        e.angle = i / (float) 250 * TAU;
+    e.planet = &planet;
 
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 50, 50 };
-        e.size *= texture_size / texture_size.y;
-
-        float offset = (rand() % 1000) / 1000.0;
-        e.offset = -(e.size.y * 0.1 + offset * offset * 50.0);
-
-        planet->entities.push_back(e);
-    }
-    e.layer = LAYER_FRONT_DECORATION;
-    for (int i = 0; i < 100; i++)
-    {
-        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % 4);
-        e.angle = i / (float) 100 * TAU;
-
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 50, 50 };
-        e.size *= texture_size / texture_size.y;
-
-        float offset = (rand() % 1000) / 1000.0;
-        e.offset = -(e.size.y * 0.1 + offset * offset * offset * 20.0);
-
-        planet->entities.push_back(e);
-    }
-    e.offset = 0;
-    for (int i = 0; i < 30; i++)
-    {
-        e.texture = (Texture)(TEXTURE_TALLPLANT1 + rand() % 1);
-        e.angle = (rand() % 1000) / 1000.0 * TAU;
-
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 120, 120 };
-        e.size *= texture_size / texture_size.y;
-
-        planet->entities.push_back(e);
-    }
     e.layer = LAYER_ACTORS;
     e.texture = TEXTURE_PLAYER;
     e.brain = ENTITY_PLAYER;
     e.size = { 100, 100 };
     e.angle = 0;
     e.offset = 0;
-    planet->entities.push_back(e);
-    e.texture = TEXTURE_STUPID;
-    e.brain = ENTITY_ENEMY;
-    for (int i = 0; i < 20; i++)
+    planet.entities.push_back(e);
+
+    for (int i = 0; i < 6; i++)
     {
-        e.angle = i / (float) 20 * TAU;
-        planet->entities.push_back(e);
-    }
-    e.layer = LAYER_BACK_DECORATION;
-    e.texture = TEXTURE_TREE1;
-    e.brain = ENTITY_STATIC;
-    e.size = { 400, 400 };
-    for (int i = 0; i < 10; i++)
-    {
-        e.angle = (i + 0.25) / 10.0 * TAU;
-        planet->entities.push_back(e);
+        e.layer = LAYER_ACTORS;
+        e.angle = (i + 0.5) / (float) 6 * TAU;
+        e.texture = TEXTURE_STUPID;
+        e.brain = ENTITY_ENEMY;
+        e.size = { 100, 100 };
+        e.offset = 305;
+        planet.entities.push_back(e);
+
+        e.layer = LAYER_FRONT_DECORATION;
+        e.texture = TEXTURE_PILLAR;
+        e.brain = ENTITY_STATIC;
+        e.size = { 100, 300 };
+        e.offset = 0;
+        planet.entities.push_back(e);
+
+        if (i % 2 == 0)
+        {
+            e.layer = LAYER_BACK_DECORATION;
+            e.texture = TEXTURE_TREE1;
+            e.brain = ENTITY_STATIC;
+            e.size = { 400, 400 };
+            e.angle = i / (float) 6 * TAU;
+            planet.entities.push_back(e);
+        }
     }
 
     while (!game_requests_close)
     {
         handle_events();
         
-        update_planets();
+        update_planet(&planet);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        begin_batch();
-        draw_planets();
+        
+        begin_batch(the_atlas_texture);
+        draw_planet(&planet);
         end_batch();
+
+        int count_infested = 0;
+        int count_total = 0;
+        for (auto& e : planet.entities)
+        {
+            if ((e.texture >= TEXTURE_EVILPLANT1 && e.texture < TEXTURE_EVILPLANT_LAST) ||
+                (e.texture >= TEXTURE_EVILTALLPLANT1 && e.texture < TEXTURE_EVILTALLPLANT_LAST))
+            {
+                count_infested++;
+                count_total++;
+            }
+            if ((e.texture >= TEXTURE_PLANT1 && e.texture < TEXTURE_PLANT_LAST) ||
+                (e.texture >= TEXTURE_TALLPLANT1 && e.texture < TEXTURE_TALLPLANT_LAST))
+            {
+                count_total++;
+            }
+        }
+
+        float life = 1 - (count_infested / (float) count_total);
+        char buff[64];
+        if (count_infested)
+            sprintf(buff, "Life: %d%%", (int)(life * 100 + 0.5));
+        else
+            sprintf(buff, "Life is saved!");
+        render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 50, 1, buff);
         
         SDL_GL_SwapWindow(the_window);
     }
