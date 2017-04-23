@@ -81,7 +81,8 @@ enum Texture
     TEXTURE_PLAYER_JUMP,
     TEXTURE_PLAYER_FALL,
 
-    TEXTURE_STUPID,
+    TEXTURE_FIREBOI,
+    TEXTURE_FIREBOI_ATTACK,
 
     TEXTURE_PLANT1,
     TEXTURE_PLANT2,
@@ -125,7 +126,7 @@ enum Entity_Kind
 {
     ENTITY_STATIC,
     ENTITY_PLAYER,
-    ENTITY_ENEMY,
+    ENTITY_FIREBOI,
     ENTITY_GRAVITY_BULLET,
 };
 
@@ -141,13 +142,22 @@ enum Layer
 
 struct Planet;
 
+#define ENTITY_FLAG_ENEMY       ((uint32) 0x01)
+#define ENTITY_FLAG_HURTS       ((uint32) 0x02)
+#define ENTITY_FLAG_STOMPABLE   ((uint32) 0x04)
+#define ENTITY_FLAG_FLIP        ((uint32) 0x08)
+#define ENTITY_FLAG_INFESTED    ((uint32) 0x10)
+#define ENTITY_FLAG_LIFE        ((uint32) 0x20)
+
 struct Entity
 {
+    uint32 flags = 0;
     Planet* planet;
     Layer layer;
     Texture texture;
     Entity_Kind brain;
-    float time_alive = 0;
+    int frames_alive = 0;
+    int frames_action = 0;
     float offset;
     float angle;
     vec2 size;
@@ -208,8 +218,8 @@ char* folder_textures   = concat(folder_data, "textures\\");
 char* folder_fonts      = concat(folder_data, "fonts\\");
 
 #define WINDOW_TITLE    "LD38"
-#define WINDOW_WIDTH    800
-#define WINDOW_HEIGHT   600
+#define WINDOW_WIDTH    1200
+#define WINDOW_HEIGHT   675
 
 bool game_requests_close = false;
 

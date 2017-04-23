@@ -56,6 +56,7 @@ void populate_planet_with_plants(Planet* planet)
     srand(time(0));
 
     Entity e;
+    e.flags = ENTITY_FLAG_INFESTED;
     e.planet = planet;
     e.brain = ENTITY_STATIC;
     e.layer = LAYER_BACK_DECORATION;

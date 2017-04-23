@@ -80,29 +80,53 @@ float ground(Entity* walker)
     return ground;
 }
 
+void death_animation(Entity* entity)
+{
+    vec2 my_center = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y * 0.5f);
+    for (int i = 0; i < 30; i++)
+    {
+        Particle p;
+        p.texture = (Texture)(TEXTURE_SPARKLE1 + rand() % (TEXTURE_SPARKLE_LAST - TEXTURE_SPARKLE1));
+        p.position = my_center + vec2((rand() % 1000) / 1000.0 * 8.0, (rand() % 1000) / 1000.0 * 8.0);
+        float angle = rand() % 1000 / 1000.0 * TAU;
+        p.velocity = vec2(sin(angle), cos(angle)) * (100.0f + (rand() % 1000) / 1000.0f * 200.0f);
+        p.acceleration = { 0, 0 };
+        p.damping = 0.99;
+        p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+        p.wobble = (float)(rand() % 1000 / 1000.0 * 20.0);
+        p.size = 12.0;
+        entity->planet->particles.push_back(p);
+    }
+}
+
 void update_entity(Entity* entity, int entity_index)
 {
     const float PLAYER_JUMP_HEIGHT = 250;
     const float PLAYER_SPEED = 500;
     const float GRAVITY = 2 * PLAYER_JUMP_HEIGHT / (0.5 * 0.5);
 
-    entity->time_alive += 1 / 60.0;
+    entity->frames_alive++;
     switch (entity->brain)
     {
     case ENTITY_PLAYER:
     {
         float legs_radius = (entity->planet->radius + entity->offset) * TAU;
         float move_distance = 0;
-        if (input_left)  move_distance -= PLAYER_SPEED / 60.0;
-        if (input_right) move_distance += PLAYER_SPEED / 60.0;
+
+        bool walking = input_left || input_right;
+        if (input_left)  { entity->flags &= ~ENTITY_FLAG_FLIP; move_distance -= PLAYER_SPEED / 60.0; }
+        if (input_right) { entity->flags |=  ENTITY_FLAG_FLIP; move_distance += PLAYER_SPEED / 60.0; }
         entity->angle += move_distance / legs_radius * TAU;
 
         float ground_offset = ground(entity);
         if (input_space && entity->offset == ground_offset)
             entity->y_velocity = sqrt(2 * GRAVITY * PLAYER_JUMP_HEIGHT);
         entity->offset += entity->y_velocity / 60.0;
+
+        bool in_air = true;
         if (entity->offset <= ground_offset)
         {
+            in_air = false;
             entity->offset = ground_offset;
             entity->y_velocity = 0;
         }
@@ -111,19 +135,41 @@ void update_entity(Entity* entity, int entity_index)
             entity->y_velocity -= GRAVITY / 60.0;
         }
 
+        if (in_air)
+        {
+            if (entity->y_velocity < 0)
+                entity->texture = TEXTURE_PLAYER_FALL;
+            else
+                entity->texture = TEXTURE_PLAYER_JUMP;
+        }
+        else
+        {
+            if (!walking)
+                entity->texture = TEXTURE_PLAYER_STILL;
+            else
+                entity->texture = (Texture)(TEXTURE_PLAYER_WALK1 + (entity->frames_alive / 6 % 2));
+        }
+
         for (int other_index = 0; other_index < entity->planet->entities.size(); other_index++)
         {
             Entity* other = &entity->planet->entities[other_index];
-            if (other->brain == ENTITY_ENEMY)
+            if (collision(entity, other))
             {
-                if (collision(entity, other))
+                if (other->flags & ENTITY_FLAG_STOMPABLE)
                 {
                     bool kill = (entity->y_velocity < 0) && ((other->offset + other->size.y * 0.5) < entity->offset);
                     if (kill)
                     {
                         entity->y_velocity = -entity->y_velocity * 0.95;
                         entity->planet->remove_list.push_back(other_index);
+                        death_animation(other);
                     }
+                }
+                else if (other->flags & ENTITY_FLAG_HURTS)
+                {
+                    entity->planet->remove_list.push_back(entity_index);
+                    entity->planet->remove_list.push_back(other_index);
+                    death_animation(entity);
                 }
             }
 
@@ -131,20 +177,16 @@ void update_entity(Entity* entity, int entity_index)
             vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
             if (length(my_bottom - other_bottom) < 80)
             {
-                bool converted = false;
-                if (other->texture >= TEXTURE_EVILPLANT1 && other->texture < TEXTURE_EVILPLANT_LAST)
+                if (other->flags & ENTITY_FLAG_INFESTED)
                 {
-                    other->texture = (Texture)(TEXTURE_PLANT1 + (other->texture - TEXTURE_EVILPLANT1));
-                    converted = true;
-                }
-                if (other->texture >= TEXTURE_EVILTALLPLANT1 && other->texture < TEXTURE_EVILTALLPLANT_LAST)
-                {
-                    other->texture = (Texture)(TEXTURE_TALLPLANT1 + (other->texture - TEXTURE_EVILTALLPLANT1));
-                    converted = true;
-                }
+                    other->flags &= ~ENTITY_FLAG_INFESTED;
+                    other->flags |=  ENTITY_FLAG_LIFE;
 
-                if (converted)
-                {
+                    if (other->texture >= TEXTURE_EVILPLANT1 && other->texture < TEXTURE_EVILPLANT_LAST)
+                        other->texture = (Texture)(TEXTURE_PLANT1 + (other->texture - TEXTURE_EVILPLANT1));
+                    if (other->texture >= TEXTURE_EVILTALLPLANT1 && other->texture < TEXTURE_EVILTALLPLANT_LAST)
+                        other->texture = (Texture)(TEXTURE_TALLPLANT1 + (other->texture - TEXTURE_EVILTALLPLANT1));
+
                     for (int i = 0; i < 3; i++)
                     {
                         Particle p;
@@ -166,7 +208,7 @@ void update_entity(Entity* entity, int entity_index)
         camera_rotation += (entity->angle - camera_rotation) * 0.2f;
         camera_position += (target_position - camera_position) * 0.1f;
     } break;
-    case ENTITY_ENEMY:
+    case ENTITY_FIREBOI:
     {
         float ground_offset = ground(entity);
         entity->offset += entity->y_velocity / 60.0;
@@ -180,32 +222,57 @@ void update_entity(Entity* entity, int entity_index)
             entity->y_velocity -= GRAVITY / 60.0;
         }
 
-        if (rand() % 100 == 0)
+        if (rand() % 10 == 0)
         {
-            vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y);
+            vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
 
-            Entity e;
-            e.planet = entity->planet;
-            e.layer = LAYER_ACTORS;
-            e.texture = TEXTURE_FIRE;
-            e.brain = ENTITY_GRAVITY_BULLET;
-            e.offset = entity->offset;
-            e.angle = entity->angle;
-            e.size = scale_to_height(TEXTURE_FIRE, 20);
-            Entity_Kind brain;
-            float offset;
-            float angle;
-            vec2 size;
-            float x_velocity;
-            float y_velocity;
+            Particle p;
+            p.texture = TEXTURE_FIRE;
+            p.position = my_top + vec2((rand() % 1000) / 1000.0 * 16.0 - 8.0, (rand() % 1000) / 1000.0 * 16.0 - 8.0);
+            float angle = entity->angle + ((rand() % 1000 / 1000.0 - 0.5) * TAU / 12.0);
+            p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * 40.0f);
+            p.acceleration = { 0, 0 };
+            p.damping = 0.99;
+            p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+            p.wobble = (float)(rand() % 1000 / 1000.0 * 10.0);
+            p.size = 12.0;
+            entity->planet->particles.push_back(p);
+        }
 
-            for (int i = 0; i < 4; i++)
+        if (entity->frames_action == 0)
+        {
+            entity->texture = TEXTURE_FIREBOI;
+            if (rand() % 300 == 0)
             {
-                float da = (i - 1.5) / 1.5 * (PI / 5);
-                vec2 velocity = normalize(vec2(sin(entity->angle + da), cos(entity->angle + da))) * 800.0f;
-                e.x_velocity = velocity.x;
-                e.y_velocity = velocity.y;
-                entity->planet->entities.push_back(e);
+                entity->texture = TEXTURE_FIREBOI_ATTACK;
+                entity->frames_action = 1;
+            }
+        }
+        else
+        {
+            entity->frames_action++;
+            if (entity->frames_action >= 60)
+            {
+                entity->frames_action = 0;
+
+                Entity e;
+                e.flags = ENTITY_FLAG_HURTS;
+                e.planet = entity->planet;
+                e.layer = LAYER_ACTORS;
+                e.texture = TEXTURE_FIRE;
+                e.brain = ENTITY_GRAVITY_BULLET;
+                e.offset = entity->offset + entity->size.y;
+                e.angle = entity->angle;
+                e.size = scale_to_height(TEXTURE_FIRE, 35);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    float da = (i - 1.5) / 1.5 * (PI / 5);
+                    vec2 velocity = normalize(vec2(sin(entity->angle + da), cos(entity->angle + da))) * 800.0f;
+                    e.x_velocity = velocity.x;
+                    e.y_velocity = velocity.y;
+                    entity->planet->entities.push_back(e);
+                }
             }
         }
     } break;
@@ -220,6 +287,21 @@ void update_entity(Entity* entity, int entity_index)
         velocity *= 0.98f;
         entity->x_velocity = velocity.x;
         entity->y_velocity = velocity.y;
+
+        for (int i = 0; i < 1; i++)
+        {
+            Particle p;
+            p.texture = TEXTURE_FIRE;
+            p.position = my_bottom + vec2((rand() % 1000) / 1000.0 * 16.0 - 8.0, (rand() % 1000) / 1000.0 * 16.0);
+            float angle = entity->angle + ((rand() % 1000 / 1000.0 - 0.5) * TAU / 12.0);
+            p.velocity = vec2(sin(angle), cos(angle)) * (100.0f + (rand() % 1000) / 1000.0f * 300.0f);
+            p.acceleration = { 0, 0 };
+            p.damping = 0.99;
+            p.life = 0.2 + (rand() % 1000 / 1000.0 * 0.2);
+            p.wobble = (float)(rand() % 1000 / 1000.0 * 20.0);
+            p.size = 12.0;
+            entity->planet->particles.push_back(p);
+        }
 
         float dx = my_bottom.x - entity->planet->position.x;
         float dy = my_bottom.y - entity->planet->position.y;
@@ -239,5 +321,5 @@ void update_entity(Entity* entity, int entity_index)
 void render_entity(Entity* entity)
 {
     vec2 bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
-    draw_rectangle(entity->texture, bottom, entity->size, entity->angle);
+    draw_rectangle(entity->texture, bottom, entity->size, entity->angle, entity->flags & ENTITY_FLAG_FLIP);
 }

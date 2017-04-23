@@ -111,7 +111,8 @@ void create_atlas()
     add_texture(TEXTURE_PLAYER_STILL, "playerstill.png");
     add_texture(TEXTURE_PLAYER_JUMP, "playerjump.png");
     add_texture(TEXTURE_PLAYER_FALL, "playerfall.png");
-    add_texture(TEXTURE_STUPID, "stupid.png");
+    add_texture(TEXTURE_FIREBOI, "fireboi.png");
+    add_texture(TEXTURE_FIREBOI_ATTACK, "fireboiattack.png");
     add_texture(TEXTURE_PLANT1, "plant1.png");
     add_texture(TEXTURE_PLANT2, "plant2.png");
     add_texture(TEXTURE_PLANT3, "plant3.png");
@@ -225,7 +226,7 @@ void batch_triangle(Vertex a, Vertex b, Vertex c)
     current_batch_size += 3;
 }
 
-void draw_rectangle(Texture texture, vec2 bottom, vec2 size, float angle)
+void draw_rectangle(Texture texture, vec2 bottom, vec2 size, float angle, bool flipped = false)
 {
     float s0 = 0.5 * size.x * sin(angle + PI / 2);
     float c0 = 0.5 * size.x * cos(angle + PI / 2);
@@ -234,6 +235,12 @@ void draw_rectangle(Texture texture, vec2 bottom, vec2 size, float angle)
 
     auto low  = atlas_low [texture];
     auto high = atlas_high[texture];
+    if (flipped)
+    {
+        float tmp = low.x;
+        low.x = high.x;
+        high.x = tmp;
+    }
     Vertex rectangle[4];
     rectangle[0] = { bottom.x - s0, bottom.y - c0,  low.x, low.y };
     rectangle[1] = { bottom.x + s0, bottom.y + c0, high.x, low.y };

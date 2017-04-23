@@ -31,6 +31,7 @@ void init_graphics()
     {
         report("SDL2 failed to initialize!");
     }
+    atexit(SDL_Quit);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -107,6 +108,14 @@ void handle_events()
             if (scancode == SDL_SCANCODE_LEFT)  input_left  = down;
             if (scancode == SDL_SCANCODE_RIGHT) input_right = down;
             if (scancode == SDL_SCANCODE_SPACE) input_space = down;
+            if (down && scancode == SDL_SCANCODE_F5)
+            {
+                auto flags = SDL_GetWindowFlags(the_window);
+                if (flags & SDL_WINDOW_FULLSCREEN_DESKTOP)
+                    SDL_SetWindowFullscreen(the_window, 0);
+                else
+                    SDL_SetWindowFullscreen(the_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            }
         } break;
         }
     }
@@ -131,19 +140,21 @@ void entry()
     e.brain = ENTITY_PLAYER;
     e.size = scale_to_height(TEXTURE_PLAYER_STILL, 80);
     e.angle = 0;
-    e.offset = 0;
+    e.offset = 400;
     planet.entities.push_back(e);
 
     for (int i = 0; i < 6; i++)
     {
+        e.flags = ENTITY_FLAG_ENEMY | ENTITY_FLAG_STOMPABLE;
         e.layer = LAYER_ACTORS;
         e.angle = (i + 0.5) / (float) 6 * TAU;
-        e.texture = TEXTURE_STUPID;
-        e.brain = ENTITY_ENEMY;
-        e.size = scale_to_height(TEXTURE_STUPID, 100);
+        e.texture = TEXTURE_FIREBOI;
+        e.brain = ENTITY_FIREBOI;
+        e.size = scale_to_height(TEXTURE_FIREBOI, 150);
         e.offset = 305;
         planet.entities.push_back(e);
 
+        e.flags = 0;
         e.layer = LAYER_FRONT_DECORATION;
         e.texture = TEXTURE_PILLAR;
         e.brain = ENTITY_STATIC;
@@ -178,17 +189,8 @@ void entry()
         int count_total = 0;
         for (auto& e : planet.entities)
         {
-            if ((e.texture >= TEXTURE_EVILPLANT1 && e.texture < TEXTURE_EVILPLANT_LAST) ||
-                (e.texture >= TEXTURE_EVILTALLPLANT1 && e.texture < TEXTURE_EVILTALLPLANT_LAST))
-            {
-                count_infested++;
-                count_total++;
-            }
-            if ((e.texture >= TEXTURE_PLANT1 && e.texture < TEXTURE_PLANT_LAST) ||
-                (e.texture >= TEXTURE_TALLPLANT1 && e.texture < TEXTURE_TALLPLANT_LAST))
-            {
-                count_total++;
-            }
+            if (e.flags & ENTITY_FLAG_LIFE) count_total++;
+            if (e.flags & ENTITY_FLAG_INFESTED) { count_total++; count_infested++; }
         }
 
         float life = 1 - (count_infested / (float) count_total);
