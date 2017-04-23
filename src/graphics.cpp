@@ -106,7 +106,11 @@ void create_atlas()
     begin_atlas();
     add_texture(TEXTURE_PLANET, "planet.png");
     add_texture(TEXTURE_PLANET_GLOW, "planet_glow.png");
-    add_texture(TEXTURE_PLAYER, "player.png");
+    add_texture(TEXTURE_PLAYER_WALK1, "playerwalk1.png");
+    add_texture(TEXTURE_PLAYER_WALK2, "playerwalk2.png");
+    add_texture(TEXTURE_PLAYER_STILL, "playerstill.png");
+    add_texture(TEXTURE_PLAYER_JUMP, "playerjump.png");
+    add_texture(TEXTURE_PLAYER_FALL, "playerfall.png");
     add_texture(TEXTURE_STUPID, "stupid.png");
     add_texture(TEXTURE_PLANT1, "plant1.png");
     add_texture(TEXTURE_PLANT2, "plant2.png");
@@ -132,6 +136,12 @@ void create_atlas()
     add_texture(TEXTURE_SPARKLE2, "sparkle2.png");
     add_texture(TEXTURE_FIRE, "fire.png");
     end_atlas();
+}
+
+vec2 scale_to_height(Texture texture, float height)
+{
+    vec2 texture_size = atlas_high[texture] - atlas_low[texture];
+    return vec2(height, height) * (texture_size / texture_size.y);
 }
 
 //////////////////

@@ -127,9 +127,9 @@ void entry()
     e.planet = &planet;
 
     e.layer = LAYER_ACTORS;
-    e.texture = TEXTURE_PLAYER;
+    e.texture = TEXTURE_PLAYER_STILL;
     e.brain = ENTITY_PLAYER;
-    e.size = { 100, 100 };
+    e.size = scale_to_height(TEXTURE_PLAYER_STILL, 80);
     e.angle = 0;
     e.offset = 0;
     planet.entities.push_back(e);
@@ -140,7 +140,7 @@ void entry()
         e.angle = (i + 0.5) / (float) 6 * TAU;
         e.texture = TEXTURE_STUPID;
         e.brain = ENTITY_ENEMY;
-        e.size = { 100, 100 };
+        e.size = scale_to_height(TEXTURE_STUPID, 100);
         e.offset = 305;
         planet.entities.push_back(e);
 

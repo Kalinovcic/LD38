@@ -80,12 +80,13 @@ float ground(Entity* walker)
     return ground;
 }
 
-void update_entity(Entity* entity)
+void update_entity(Entity* entity, int entity_index)
 {
     const float PLAYER_JUMP_HEIGHT = 250;
     const float PLAYER_SPEED = 500;
     const float GRAVITY = 2 * PLAYER_JUMP_HEIGHT / (0.5 * 0.5);
 
+    entity->time_alive += 1 / 60.0;
     switch (entity->brain)
     {
     case ENTITY_PLAYER:
@@ -182,25 +183,54 @@ void update_entity(Entity* entity)
         if (rand() % 100 == 0)
         {
             vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y);
-            vec2 up = normalize(my_top - entity->planet->position);
 
-            Particle p;
-            p.flags = PARTICLE_PROJECTILE;
-            p.texture = TEXTURE_FIRE;
-            p.position = my_top;
-            p.acceleration = -up * 1300.0f;
-            p.damping = 0.98;
-            p.life = 5.0;
-            p.wobble = 10.0;
-            p.size = 18.0;
+            Entity e;
+            e.planet = entity->planet;
+            e.layer = LAYER_ACTORS;
+            e.texture = TEXTURE_FIRE;
+            e.brain = ENTITY_GRAVITY_BULLET;
+            e.offset = entity->offset;
+            e.angle = entity->angle;
+            e.size = scale_to_height(TEXTURE_FIRE, 20);
+            Entity_Kind brain;
+            float offset;
+            float angle;
+            vec2 size;
+            float x_velocity;
+            float y_velocity;
 
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 4; i++)
             {
-                float hor = (i - 2.5) / 2.0;
-                p.velocity = up * 400.0f;
-                p.velocity += vec2(-up.y, up.x) * hor * 250.0f;
-                entity->planet->particles.push_back(p);
+                float da = (i - 1.5) / 1.5 * (PI / 5);
+                vec2 velocity = normalize(vec2(sin(entity->angle + da), cos(entity->angle + da))) * 800.0f;
+                e.x_velocity = velocity.x;
+                e.y_velocity = velocity.y;
+                entity->planet->entities.push_back(e);
             }
+        }
+    } break;
+    case ENTITY_GRAVITY_BULLET:
+    {
+        vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
+        vec2 down = normalize(entity->planet->position - my_bottom);
+
+        vec2 velocity = vec2(entity->x_velocity, entity->y_velocity);
+        my_bottom += velocity / 60.0f;
+        velocity += down * 1400.0f / 60.0f;
+        velocity *= 0.98f;
+        entity->x_velocity = velocity.x;
+        entity->y_velocity = velocity.y;
+
+        float dx = my_bottom.x - entity->planet->position.x;
+        float dy = my_bottom.y - entity->planet->position.y;
+        entity->offset = length(my_bottom - entity->planet->position) - entity->planet->radius;
+        entity->angle = atan2(dx, dy);
+
+        float ground_offset = ground(entity);
+        if (entity->offset <= ground_offset)
+        {
+            entity->planet->remove_list.push_back(entity_index);
+            break;
         }
     } break;
     }

@@ -2,7 +2,7 @@
 void update_planet(Planet* planet)
 {
     for (int i = 0; i < planet->entities.size(); i++)
-        update_entity(&planet->entities[i]);
+        update_entity(&planet->entities[i], i);
 
     sort(planet->remove_list.rbegin(), planet->remove_list.rend());
     for (int i : planet->remove_list)
@@ -44,8 +44,7 @@ void draw_planet(Planet* planet)
         render_position += normalize(vec2(-p.velocity.y, p.velocity.x)) * wob;
         draw_rectangle(p.texture, render_position, vec2(p.size, p.size), 0);
         p.life -= 1.0 / 60.0;
-        float offset = length(render_position - planet->position) - planet->radius;
-        if (p.life < 0 || ((p.flags & PARTICLE_PROJECTILE) && offset < 0))
+        if (p.life < 0)
             it = planet->particles.erase(it);
         else
             it++;

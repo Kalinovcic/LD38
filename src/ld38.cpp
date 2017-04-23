@@ -73,7 +73,14 @@ enum Texture
 {
     TEXTURE_PLANET,
     TEXTURE_PLANET_GLOW,
-    TEXTURE_PLAYER,
+
+    TEXTURE_PLAYER_WALK1,
+    TEXTURE_PLAYER_WALK2,
+    TEXTURE_PLAYER_WALK_LAST,
+    TEXTURE_PLAYER_STILL,
+    TEXTURE_PLAYER_JUMP,
+    TEXTURE_PLAYER_FALL,
+
     TEXTURE_STUPID,
 
     TEXTURE_PLANT1,
@@ -116,9 +123,10 @@ enum Texture
 
 enum Entity_Kind
 {
+    ENTITY_STATIC,
     ENTITY_PLAYER,
     ENTITY_ENEMY,
-    ENTITY_STATIC,
+    ENTITY_GRAVITY_BULLET,
 };
 
 enum Layer
@@ -139,17 +147,16 @@ struct Entity
     Layer layer;
     Texture texture;
     Entity_Kind brain;
+    float time_alive = 0;
     float offset;
     float angle;
     vec2 size;
+    float x_velocity;
     float y_velocity;
 };
 
-#define PARTICLE_PROJECTILE 0x01
-
 struct Particle
 {
-    uint32 flags;
     Texture texture;
     vec2 position;
     vec2 velocity;
