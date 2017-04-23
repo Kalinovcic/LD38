@@ -100,6 +100,8 @@ enum Texture
 
     TEXTURE_TREE1,
     TEXTURE_PILLAR,
+    TEXTURE_PLATFORM,
+    TEXTURE_EVILPLATFORM,
 
     TEXTURE_EVILPLANT1,
     TEXTURE_EVILPLANT2,
@@ -128,6 +130,7 @@ enum Entity_Kind
     ENTITY_STATIC,
     ENTITY_PLAYER,
     ENTITY_FIREBOI,
+    ENTITY_ANGLE_FIRE,
     ENTITY_GRAVITY_BULLET,
 };
 
@@ -143,12 +146,13 @@ enum Layer
 
 struct Planet;
 
-#define ENTITY_FLAG_ENEMY       ((uint32) 0x01)
-#define ENTITY_FLAG_HURTS       ((uint32) 0x02)
-#define ENTITY_FLAG_STOMPABLE   ((uint32) 0x04)
-#define ENTITY_FLAG_FLIP        ((uint32) 0x08)
-#define ENTITY_FLAG_INFESTED    ((uint32) 0x10)
-#define ENTITY_FLAG_LIFE        ((uint32) 0x20)
+#define ENTITY_FLAG_ENEMY           ((uint32) 0x01)
+#define ENTITY_FLAG_HURTS           ((uint32) 0x02)
+#define ENTITY_FLAG_STOMPABLE       ((uint32) 0x04)
+#define ENTITY_FLAG_FLIP            ((uint32) 0x08)
+#define ENTITY_FLAG_INFESTED        ((uint32) 0x10)
+#define ENTITY_FLAG_LIFE            ((uint32) 0x20)
+#define ENTITY_FLAG_MUTE            ((uint32) 0x40)
 
 struct Entity
 {

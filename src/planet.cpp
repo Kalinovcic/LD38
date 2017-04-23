@@ -65,10 +65,7 @@ void populate_planet_with_plants(Planet* planet)
     {
         e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
         e.angle = i / (float) 100 * TAU;
-
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 50, 50 };
-        e.size *= texture_size / texture_size.y;
+        e.size = scale_to_height(e.texture, 50);
 
         float offset = (rand() % 1000) / 1000.0;
         e.offset = -(e.size.y * 0.1 + offset * offset * 50.0);
@@ -80,10 +77,7 @@ void populate_planet_with_plants(Planet* planet)
     {
         e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
         e.angle = i / (float) 60 * TAU;
-
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 50, 50 };
-        e.size *= texture_size / texture_size.y;
+        e.size = scale_to_height(e.texture, 50);
 
         float offset = (rand() % 1000) / 1000.0;
         e.offset = -(e.size.y * 0.1 + offset * offset * offset * 20.0);
@@ -95,11 +89,32 @@ void populate_planet_with_plants(Planet* planet)
     {
         e.texture = (Texture)(TEXTURE_EVILTALLPLANT1 + rand() % (TEXTURE_EVILTALLPLANT_LAST - TEXTURE_EVILTALLPLANT1));
         e.angle = (rand() % 1000) / 1000.0 * TAU;
-
-        vec2 texture_size = atlas_high[e.texture] - atlas_low[e.texture];
-        e.size = { 120, 120 };
-        e.size *= texture_size / texture_size.y;
+        e.size = scale_to_height(e.texture, 120);
 
         planet->entities.push_back(e);
+    }
+}
+
+void place_platforms(Planet* planet, Texture texture, float width, float angle_from, float angle_to, float offset)
+{
+    if (angle_to < angle_from)
+        angle_to += TAU;
+
+    Entity e;
+    e.planet = planet;
+    e.brain = (texture == TEXTURE_EVILPLATFORM) ? ENTITY_ANGLE_FIRE : ENTITY_STATIC;
+    e.layer = LAYER_BACK_DECORATION;
+    e.y_velocity = 0;
+    e.texture = texture;
+    e.size = scale_to_width(e.texture, width);
+    e.offset = offset - e.size.y;
+
+    float radius = planet->radius + offset;
+    float angle_width = 2 * atan((width / 2) / radius);
+    e.angle = angle_from + angle_width * 0.5;
+    while (e.angle < angle_to)
+    {
+        planet->entities.push_back(e);
+        e.angle += angle_width;
     }
 }

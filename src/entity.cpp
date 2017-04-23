@@ -3,8 +3,11 @@ void get_phyiscs_angles(Entity* e, float* angle, float* angle_width, float heigh
 {
     float radius = e->planet->radius + e->offset + e->size.y * height;
     *angle_width = 2 * atan((e->size.x / 2) / radius);
-    *angle = e->angle - (*angle_width * 0.5);
-    *angle = fmod(fmod(*angle, TAU) + TAU, TAU);
+    if (angle)
+    {
+        *angle = e->angle - (*angle_width * 0.5);
+        *angle = fmod(fmod(*angle, TAU) + TAU, TAU);
+    }
 }
 
 bool collision(Entity* e1, Entity* e2)
@@ -33,6 +36,8 @@ bool collision(Entity* e1, Entity* e2)
         return o1 <= o2 + h2;
 }
 
+static const float GROUND_EPSILON = 5.0;
+
 float ground(Entity* walker)
 {
     Planet* planet = walker->planet;
@@ -55,7 +60,7 @@ float ground(Entity* walker)
             float dy = center.y - planet->position.y;
             float radius = sqrt(dx * dx + dy * dy);
             float poffset = radius - planet->radius;
-            if (poffset > walker->offset) continue;
+            if (poffset - GROUND_EPSILON > walker->offset) continue;
 
             float a1 = ea1, w1 = ew1;
             float w2 = 2 * atan((pw / 2) / radius);
@@ -239,13 +244,13 @@ void update_entity(Entity* entity, int entity_index)
         }
 
         vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
-        if (rand() % 10 == 0)
+        if (rand() % (entity->frames_action ? 1 : 10) == 0)
         {
             Particle p;
             p.texture = TEXTURE_FIRE;
             p.position = my_top + vec2((rand() % 1000) / 1000.0 * 16.0 - 8.0, (rand() % 1000) / 1000.0 * 16.0 - 8.0);
-            float angle = entity->angle + ((rand() % 1000 / 1000.0 - 0.5) * TAU / 12.0);
-            p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * 40.0f);
+            float angle = entity->angle + ((rand() % 1000 / 1000.0 - 0.5) * TAU / (entity->frames_action ? 6.0f : 12.0f));
+            p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * (entity->frames_action ? 150.0f : 40.0f));
             p.acceleration = { 0, 0 };
             p.damping = 0.99;
             p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
@@ -293,6 +298,57 @@ void update_entity(Entity* entity, int entity_index)
             }
         }
     } break;
+    case ENTITY_ANGLE_FIRE:
+    {
+        static const int LOOP_FRAMES = 8 * 60;
+        static const int WARNING_FRAMES = 2 * 60;
+        float angle = fmod(fmod(entity->angle, TAU) + TAU, TAU);
+        int frame = angle / TAU * LOOP_FRAMES;
+        int current_frame = entity->frames_alive % LOOP_FRAMES;
+
+        vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
+        if ((current_frame + WARNING_FRAMES) % LOOP_FRAMES >= frame && current_frame < frame)
+        {
+            Particle p;
+            p.texture = TEXTURE_FIRE;
+            p.position = my_top + vec2(-cos(entity->angle), sin(entity->angle)) * (rand() % 1000 / 1000.0f - 0.5f) * entity->size.x;
+            float dx = p.position.x - entity->planet->position.x;
+            float dy = p.position.y - entity->planet->position.y;
+            float angle = atan2(dx, dy);
+            p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * 150.0f);
+            p.acceleration = { 0, 0 };
+            p.damping = 0.99;
+            p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+            p.wobble = (float)(rand() % 1000 / 1000.0 * 15.0);
+            p.size = 12.0;
+            entity->planet->particles.push_back(p);
+        }
+        if (current_frame == frame)
+        {
+            Entity e;
+            e.flags = ENTITY_FLAG_HURTS | ENTITY_FLAG_MUTE;
+            e.planet = entity->planet;
+            e.layer = LAYER_ACTORS;
+            e.texture = TEXTURE_FIRE;
+            e.brain = ENTITY_GRAVITY_BULLET;
+            e.offset = entity->offset + entity->size.y;
+            e.size = scale_to_height(TEXTURE_FIRE, 35);
+
+            float angle_width;
+            get_phyiscs_angles(entity, NULL, &angle_width, 1.0);
+
+            for (int i = 0; i < 4; i++)
+            {
+                e.angle = entity->angle + ((i + 0.5) / 4.0 - 0.5) * angle_width;
+                vec2 velocity = normalize(vec2(sin(e.angle), cos(e.angle))) * 800.0f;
+                e.x_velocity = velocity.x;
+                e.y_velocity = velocity.y;
+                entity->planet->entities.push_back(e);
+            }
+
+            play_sound_effect(sound_fireball, my_top, 0.4);
+        }
+    } break;
     case ENTITY_GRAVITY_BULLET:
     {
         vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
@@ -328,7 +384,8 @@ void update_entity(Entity* entity, int entity_index)
         float ground_offset = ground(entity);
         if (entity->offset <= ground_offset)
         {
-            play_sound_effect(sound_fireball_out, my_bottom, 0.3);
+            if (!(entity->flags & ENTITY_FLAG_MUTE))
+                play_sound_effect(sound_fireball_out, my_bottom, 0.3);
             entity->planet->remove_list.push_back(entity_index);
             break;
         }

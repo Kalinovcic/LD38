@@ -125,6 +125,8 @@ void create_atlas()
     add_texture(TEXTURE_TALLPLANT5, "tallplant5.png");
     add_texture(TEXTURE_TREE1, "tree1.png");
     add_texture(TEXTURE_PILLAR, "pillar.png");
+    add_texture(TEXTURE_PLATFORM, "platform.png");
+    add_texture(TEXTURE_EVILPLATFORM, "evilplatform.png");
     add_texture(TEXTURE_EVILPLANT1, "evilplant1.png");
     add_texture(TEXTURE_EVILPLANT2, "evilplant2.png");
     add_texture(TEXTURE_EVILPLANT3, "evilplant3.png");
@@ -138,6 +140,12 @@ void create_atlas()
     add_texture(TEXTURE_SPARKLE2, "sparkle2.png");
     add_texture(TEXTURE_FIRE, "fire.png");
     end_atlas();
+}
+
+vec2 scale_to_width(Texture texture, float width)
+{
+    vec2 texture_size = atlas_high[texture] - atlas_low[texture];
+    return vec2(width, width) * (texture_size / texture_size.x);
 }
 
 vec2 scale_to_height(Texture texture, float height)

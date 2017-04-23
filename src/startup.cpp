@@ -158,6 +158,8 @@ void entry()
 
         if (i % 2 == 0)
         {
+            place_platforms(&planet, (i == 2 ? TEXTURE_EVILPLATFORM : TEXTURE_PLATFORM), 100, (i + 0.5) / (float) 6 * TAU, (i + 1.5) / (float) 6 * TAU, 285);
+
             e.layer = LAYER_BACK_DECORATION;
             e.texture = TEXTURE_TREE1;
             e.brain = ENTITY_STATIC;
