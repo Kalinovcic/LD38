@@ -119,7 +119,8 @@ void update_entity(Entity* entity, int entity_index)
         entity->angle += move_distance / legs_radius * TAU;
 
         float ground_offset = ground(entity);
-        if (input_space && entity->offset == ground_offset)
+        bool jump = input_space && entity->offset == ground_offset;
+        if (jump)
             entity->y_velocity = sqrt(2 * GRAVITY * PLAYER_JUMP_HEIGHT);
         entity->offset += entity->y_velocity / 60.0;
 
@@ -135,6 +136,9 @@ void update_entity(Entity* entity, int entity_index)
             entity->y_velocity -= GRAVITY / 60.0;
         }
 
+        vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
+        if (jump)
+            play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.2);
         if (in_air)
         {
             if (entity->y_velocity < 0)
@@ -147,12 +151,18 @@ void update_entity(Entity* entity, int entity_index)
             if (!walking)
                 entity->texture = TEXTURE_PLAYER_STILL;
             else
+            {
+                if (entity->frames_alive % 24 == 0)
+                    play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.2);
                 entity->texture = (Texture)(TEXTURE_PLAYER_WALK1 + (entity->frames_alive / 6 % 2));
+            }
         }
 
         for (int other_index = 0; other_index < entity->planet->entities.size(); other_index++)
         {
             Entity* other = &entity->planet->entities[other_index];
+            vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
+
             if (collision(entity, other))
             {
                 if (other->flags & ENTITY_FLAG_STOMPABLE)
@@ -163,6 +173,8 @@ void update_entity(Entity* entity, int entity_index)
                         entity->y_velocity = -entity->y_velocity * 0.95;
                         entity->planet->remove_list.push_back(other_index);
                         death_animation(other);
+
+                        play_sound_effect(sound_bounce, my_bottom, 0.4);
                     }
                 }
                 else if (other->flags & ENTITY_FLAG_HURTS)
@@ -173,12 +185,16 @@ void update_entity(Entity* entity, int entity_index)
                 }
             }
 
-            vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
-            vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
             if (length(my_bottom - other_bottom) < 80)
             {
                 if (other->flags & ENTITY_FLAG_INFESTED)
                 {
+                    if (entity->frames_action % 6 == 0)
+                    {
+                        play_sound_effect(sound_grass_life[rand() % 2], my_bottom, 0.2);
+                    }
+                    entity->frames_action++;
+
                     other->flags &= ~ENTITY_FLAG_INFESTED;
                     other->flags |=  ENTITY_FLAG_LIFE;
 
@@ -222,10 +238,9 @@ void update_entity(Entity* entity, int entity_index)
             entity->y_velocity -= GRAVITY / 60.0;
         }
 
+        vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
         if (rand() % 10 == 0)
         {
-            vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
-
             Particle p;
             p.texture = TEXTURE_FIRE;
             p.position = my_top + vec2((rand() % 1000) / 1000.0 * 16.0 - 8.0, (rand() % 1000) / 1000.0 * 16.0 - 8.0);
@@ -273,6 +288,8 @@ void update_entity(Entity* entity, int entity_index)
                     e.y_velocity = velocity.y;
                     entity->planet->entities.push_back(e);
                 }
+
+                play_sound_effect(sound_fireball, my_top, 0.7);
             }
         }
     } break;
@@ -311,6 +328,7 @@ void update_entity(Entity* entity, int entity_index)
         float ground_offset = ground(entity);
         if (entity->offset <= ground_offset)
         {
+            play_sound_effect(sound_fireball_out, my_bottom, 0.3);
             entity->planet->remove_list.push_back(entity_index);
             break;
         }

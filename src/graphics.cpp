@@ -88,6 +88,7 @@ void end_atlas()
 void add_texture(Texture id, char* name)
 {
     auto path = concat(folder_textures, name);
+    defer(free(path));
 
     int width, height, channels;
     auto bytes = (uint8*) stbi_load(path, &width, &height, &channels, 4);
@@ -162,9 +163,6 @@ Vertex batch_vertices[BATCH_SIZE];
 int current_batch_size = 0;
 GLuint current_batch_atlas;
 bool current_batch_gui;
-
-float camera_rotation;
-vec2 camera_position;
 
 void begin_batch(GLuint atlas, bool gui = false)
 {

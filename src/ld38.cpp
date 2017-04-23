@@ -18,6 +18,7 @@ using std::vector;
 using namespace glm;
 
 #include "SDL2/SDL.h"
+#include "SDL2/SDL_mixer.h"
 #undef main
 
 #define STB_RECT_PACK_IMPLEMENTATION
@@ -201,6 +202,12 @@ struct Font
 
 Font regular_font;
 
+Mix_Chunk* sound_grass_walk[3];
+Mix_Chunk* sound_grass_life[2];
+Mix_Chunk* sound_bounce;
+Mix_Chunk* sound_fireball;
+Mix_Chunk* sound_fireball_out;
+
 #define DEG2RAD 0.0174533
 
 int window_width, window_height;
@@ -209,10 +216,14 @@ bool input_left;
 bool input_right;
 bool input_space;
 
+float camera_rotation;
+vec2 camera_position;
+
 SDL_Window* the_window = NULL;
 
 char* folder_run_tree   = get_run_tree_path();
 char* folder_data       = concat(folder_run_tree, "data\\");
+char* folder_audio      = concat(folder_data, "audio\\");
 char* folder_shaders    = concat(folder_data, "shaders\\");
 char* folder_textures   = concat(folder_data, "textures\\");
 char* folder_fonts      = concat(folder_data, "fonts\\");
@@ -227,6 +238,7 @@ void quit();
 void entry();
 
 #include "win32.cpp"
+#include "audio.cpp"
 #include "graphics.cpp"
 #include "entity.cpp"
 #include "planet.cpp"

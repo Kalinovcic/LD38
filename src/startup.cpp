@@ -25,13 +25,12 @@ void APIENTRY opengl_callback(GLenum source, GLenum type, GLuint id, GLenum seve
     fprintf(stderr, "id=0x%u %s\n", (unsigned int) id, message);
 }
 
-void init_graphics()
+void init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO))
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     {
         report("SDL2 failed to initialize!");
     }
-    atexit(SDL_Quit);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -71,20 +70,14 @@ void init_graphics()
     }
 
     init_opengl();
-}
 
-void init()
-{
-    init_graphics();
-}
-
-void quit_graphics()
-{
+    init_audio();
 }
 
 void quit()
 {
-    quit_graphics();
+    Mix_Quit();
+    SDL_Quit();
 }
 
 void handle_events()
@@ -123,6 +116,7 @@ void handle_events()
 
 void entry()
 {
+    atexit(quit);
     init();
 
     Planet planet;
@@ -203,6 +197,4 @@ void entry()
         
         SDL_GL_SwapWindow(the_window);
     }
-
-    quit();
 }
