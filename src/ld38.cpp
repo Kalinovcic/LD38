@@ -136,6 +136,7 @@ enum Entity_Kind
 
 enum Layer
 {
+    LAYER_VERY_BACK_DECORATION,
     LAYER_BACK_DECORATION,
     LAYER_ACTORS,
     LAYER_FRONT_DECORATION,
@@ -231,6 +232,7 @@ char* folder_audio      = concat(folder_data, "audio\\");
 char* folder_shaders    = concat(folder_data, "shaders\\");
 char* folder_textures   = concat(folder_data, "textures\\");
 char* folder_fonts      = concat(folder_data, "fonts\\");
+char* folder_planets    = concat(folder_data, "planets\\");
 
 #define WINDOW_TITLE    "LD38"
 #define WINDOW_WIDTH    1200
@@ -246,6 +248,7 @@ void entry();
 #include "graphics.cpp"
 #include "entity.cpp"
 #include "planet.cpp"
+#include "level.cpp"
 #include "startup.cpp"
 
 }

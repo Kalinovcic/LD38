@@ -1,0 +1,41 @@
+# layer:            l <layer 0 = very back, 1 = back, 2 = actors, 3 = front, 4 = very front>
+# life arc:         a <angle from> <angle width> <base offset>
+# planet radius:    r <radius>
+# player:           o <angle> <offset>
+# tree:             t <angle> <offset> <height>
+# pillar:           p <angle> <offset> <height>
+# bridge:           b <angle from> <angle width> <base offset>
+# firebridge:       c <angle from> <angle width> <base offset>
+# fireboi:          f <angle> <offset> <height>
+
+r 500.0
+
+a 0 360 0
+a 30 60 335
+a 270 60 335
+
+l 3
+c 0 360 600
+p 30 0 350
+b 30 60 335
+p 90 0 350
+p 150 0 350
+c 150 60 335
+p 210 0 350
+p 270 0 350
+b 270 60 335
+p 330 0 350
+
+l 1
+t 0 0 400
+t 120 0 400
+t 240 0 400
+
+l 2
+o 0 405
+f 30 355 150
+f 90 355 150
+f 150 355 150
+f 210 355 150
+f 270 355 150
+f 330 355 150

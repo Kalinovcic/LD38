@@ -120,57 +120,8 @@ void entry()
     init();
 
     Planet planet;
-    planet.position = { 3000, 3000 };
-    planet.radius = 500.0;
+    load_level(&planet, 1);
     camera_position = -planet.position;
-
-    populate_planet_with_plants(&planet);
-
-    Entity e;
-    e.planet = &planet;
-
-    e.layer = LAYER_ACTORS;
-    e.texture = TEXTURE_PLAYER_STILL;
-    e.brain = ENTITY_PLAYER;
-    e.size = scale_to_height(TEXTURE_PLAYER_STILL, 80);
-    e.angle = 0;
-    e.offset = 400;
-    planet.entities.push_back(e);
-
-    for (int i = 0; i < 6; i++)
-    {
-        e.flags = ENTITY_FLAG_ENEMY | ENTITY_FLAG_STOMPABLE;
-        e.layer = LAYER_ACTORS;
-        e.angle = (i + 0.5) / 6.0 * TAU;
-        e.texture = TEXTURE_FIREBOI;
-        e.brain = ENTITY_FIREBOI;
-        e.size = scale_to_height(TEXTURE_FIREBOI, 150);
-        e.offset = 355;
-        planet.entities.push_back(e);
-
-        e.flags = 0;
-        e.layer = LAYER_FRONT_DECORATION;
-        e.texture = TEXTURE_PILLAR;
-        e.brain = ENTITY_STATIC;
-        e.size = scale_to_height(TEXTURE_PILLAR, 350);
-        e.offset = 0;
-        planet.entities.push_back(e);
-
-        if (i % 2 == 0)
-        {
-            bool evil = i == 2;
-            place_platforms(&planet, (evil ? TEXTURE_EVILPLATFORM : TEXTURE_PLATFORM), 100, (i + 0.5) / (float) 6 * TAU, (i + 1.5) / (float) 6 * TAU, 335);
-            if (!evil)
-                populate_angle_with_plants(&planet, (i + 0.5) / 6.0 * TAU, 1.0 / 6.0 * TAU, 335);
-
-            e.layer = LAYER_BACK_DECORATION;
-            e.texture = TEXTURE_TREE1;
-            e.brain = ENTITY_STATIC;
-            e.size = scale_to_height(TEXTURE_TREE1, 400);
-            e.angle = i / (float) 6 * TAU;
-            planet.entities.push_back(e);
-        }
-    }
 
     while (!game_requests_close)
     {
