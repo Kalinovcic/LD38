@@ -54,7 +54,7 @@ void draw_planet(Planet* planet)
 void populate_angle_with_plants(Planet* planet, float angle, float angle_width, float base_offset)
 {
     Entity e;
-    e.flags = ENTITY_FLAG_INFESTED;
+    e.flags = ENTITY_FLAG_LIFE;
     e.planet = planet;
     e.brain = ENTITY_STATIC;
     e.layer = LAYER_BACK_DECORATION;
@@ -62,7 +62,7 @@ void populate_angle_with_plants(Planet* planet, float angle, float angle_width, 
     int count = (int)(angle_width / TAU * 100 + 0.5);
     for (int i = 0; i < count; i++)
     {
-        e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
+        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % (TEXTURE_PLANT_LAST - TEXTURE_PLANT1));
         e.angle = angle + i / (float) count * angle_width;
         e.size = scale_to_height(e.texture, 50);
 
@@ -75,7 +75,7 @@ void populate_angle_with_plants(Planet* planet, float angle, float angle_width, 
     count = (int)(angle_width / TAU * 60 + 0.5);
     for (int i = 0; i < angle_width / TAU * 60; i++)
     {
-        e.texture = (Texture)(TEXTURE_EVILPLANT1 + rand() % (TEXTURE_EVILPLANT_LAST - TEXTURE_EVILPLANT1));
+        e.texture = (Texture)(TEXTURE_PLANT1 + rand() % (TEXTURE_PLANT_LAST - TEXTURE_PLANT1));
         e.angle = angle + i / (float) count * angle_width;
         e.size = scale_to_height(e.texture, 50);
 
@@ -88,18 +88,12 @@ void populate_angle_with_plants(Planet* planet, float angle, float angle_width, 
     count = (int)(angle_width / TAU * 15 + 0.5);
     for (int i = 0; i < angle_width / TAU * 15; i++)
     {
-        e.texture = (Texture)(TEXTURE_EVILTALLPLANT1 + rand() % (TEXTURE_EVILTALLPLANT_LAST - TEXTURE_EVILTALLPLANT1));
+        e.texture = (Texture)(TEXTURE_TALLPLANT1 + rand() % (TEXTURE_TALLPLANT_LAST - TEXTURE_TALLPLANT1));
         e.angle = angle + (rand() % 1000) / 1000.0 * angle_width;
         e.size = scale_to_height(e.texture, 120);
 
         planet->entities.push_back(e);
     }
-}
-
-void populate_planet_with_plants(Planet* planet)
-{
-    srand(time(0));
-    populate_angle_with_plants(planet, 0, TAU, 0);
 }
 
 void place_platforms(Planet* planet, Texture texture, float width, float angle_from, float angle_to, float offset)

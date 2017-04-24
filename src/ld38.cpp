@@ -204,6 +204,7 @@ enum Level_State
     STATE_PLAYING,
     STATE_DEAD,
     STATE_INTRO,
+    STATE_SHORT_INTRO,
     STATE_ENDING,
 };
 
@@ -235,6 +236,7 @@ bool input_space;
 float camera_zoom;
 float camera_rotation;
 vec2 camera_position;
+vec4 camera_color;
 
 SDL_Window* the_window = NULL;
 

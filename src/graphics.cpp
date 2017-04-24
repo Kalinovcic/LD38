@@ -190,6 +190,7 @@ void begin_batch(GLuint atlas, bool gui = false)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, current_batch_atlas);
     glUniform1i(glGetUniformLocation(the_shader, "atlas"), 0);
+    glUniform4fv(glGetUniformLocation(the_shader, "color_multiplier"), 1, (GLfloat*) &camera_color);
     glUniformMatrix4fv(glGetUniformLocation(the_shader, "transform"), 1, GL_FALSE, (GLfloat*) &camera_transform);
 
     glEnable(GL_BLEND);
@@ -413,8 +414,6 @@ GLuint load_shader(char* vertex_name, char* fragment_name)
 
 void init_opengl()
 {
-    glClearColor(86/255.0, 162/255.0, 239/255.0, 1);
-
     glGenVertexArrays(1, &the_vertex_array);
     glBindVertexArray(the_vertex_array);
 
