@@ -128,4 +128,62 @@ void load_level(Planet* planet, int index)
             printf("Unrecognized planet line: %s\n", line);
         }
     }
+
+    state = STATE_INTRO;
+    state_time = 0;
+    camera_zoom = 5.0;
+}
+
+void update_and_render_level(Planet* planet)
+{
+    update_planet(planet);
+
+    switch (state)
+    {
+    case STATE_INTRO:
+    {
+        static const float INTRO_DURATION = 5.0;
+        camera_position = -planet->position;
+        camera_zoom = 0.2 + smoothstep(0.0f, INTRO_DURATION, state_time) * 0.3;
+        if (state_time >= INTRO_DURATION)
+            state = STATE_PLAYING;
+    } break;
+    case STATE_PLAYING:
+    {
+        float target_zoom = 1.0;
+        camera_zoom += (target_zoom - camera_zoom) * 0.05f;
+    } break;
+    case STATE_DEAD:
+    {
+        float target_zoom = 0.2;
+        vec2 target_position = -planet->position;
+        camera_position += (target_position - camera_position) * 0.01f;
+        camera_zoom += (target_zoom - camera_zoom) * 0.01f;
+    } break;
+    }
+    state_time += 1 / 60.0;
+
+    begin_batch(the_atlas_texture);
+    draw_planet(planet);
+    end_batch();
+
+    int count_infested = 0;
+    int count_total = 0;
+    for (auto& e : planet->entities)
+    {
+        if (e.flags & ENTITY_FLAG_LIFE) count_total++;
+        if (e.flags & ENTITY_FLAG_INFESTED) { count_total++; count_infested++; }
+    }
+
+    float life = 1 - (count_infested / (float) count_total);
+    char buff[64];
+    if (count_infested)
+    {
+        int life_int = (int)(life * 100 + 0.5);
+        if (life_int == 100) life_int--;
+        sprintf(buff, "Life: %d%%", life_int);
+    }
+    else
+        sprintf(buff, "Life is saved!");
+    render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 50, 1, buff);
 }

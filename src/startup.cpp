@@ -126,30 +126,9 @@ void entry()
     while (!game_requests_close)
     {
         handle_events();
-        
-        update_planet(&planet);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        begin_batch(the_atlas_texture);
-        draw_planet(&planet);
-        end_batch();
-
-        int count_infested = 0;
-        int count_total = 0;
-        for (auto& e : planet.entities)
-        {
-            if (e.flags & ENTITY_FLAG_LIFE) count_total++;
-            if (e.flags & ENTITY_FLAG_INFESTED) { count_total++; count_infested++; }
-        }
-
-        float life = 1 - (count_infested / (float) count_total);
-        char buff[64];
-        if (count_infested)
-            sprintf(buff, "Life: %d%%", (int)(life * 100 + 0.5));
-        else
-            sprintf(buff, "Life is saved!");
-        render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 50, 1, buff);
+        update_and_render_level(&planet);
         
         SDL_GL_SwapWindow(the_window);
     }

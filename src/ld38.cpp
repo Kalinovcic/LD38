@@ -199,6 +199,17 @@ struct Platform
     float width;
 };
 
+enum Level_State
+{
+    STATE_PLAYING,
+    STATE_DEAD,
+    STATE_INTRO,
+    STATE_ENDING,
+};
+
+Level_State state;
+float state_time;
+
 struct Font
 {
     stbtt_bakedchar cdata[96]; // ASCII 32..126
@@ -221,6 +232,7 @@ bool input_left;
 bool input_right;
 bool input_space;
 
+float camera_zoom;
 float camera_rotation;
 vec2 camera_position;
 

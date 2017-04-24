@@ -174,11 +174,12 @@ bool current_batch_gui;
 
 void begin_batch(GLuint atlas, bool gui = false)
 {
+    float zoom = gui ? 1 : camera_zoom;
     mat4 camera_transform;
     if (gui)
-        camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1));
+        camera_transform = scale(vec3(2.0 / window_width * zoom, 2.0 / window_height * zoom, 1));
     else
-        camera_transform = scale(vec3(2.0 / window_width, 2.0 / window_height, 1)) * rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
+        camera_transform = scale(vec3(2.0 / window_width * zoom, 2.0 / window_height * zoom, 1)) * rotate(camera_rotation, vec3(0, 0, 1)) * translate(vec3(camera_position, 0));
 
     glBindVertexArray(the_vertex_array);
 

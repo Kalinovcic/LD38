@@ -143,7 +143,7 @@ void update_entity(Entity* entity, int entity_index)
 
         vec2 my_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
         if (jump)
-            play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.2);
+            play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.4);
         if (in_air)
         {
             if (entity->y_velocity < 0)
@@ -158,7 +158,7 @@ void update_entity(Entity* entity, int entity_index)
             else
             {
                 if (entity->frames_alive % 24 == 0)
-                    play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.2);
+                    play_sound_effect(sound_grass_walk[rand() % 3], my_bottom, 0.4);
                 entity->texture = (Texture)(TEXTURE_PLAYER_WALK1 + (entity->frames_alive / 6 % 2));
             }
         }
@@ -187,6 +187,8 @@ void update_entity(Entity* entity, int entity_index)
                     entity->planet->remove_list.push_back(entity_index);
                     entity->planet->remove_list.push_back(other_index);
                     death_animation(entity);
+                    state = STATE_DEAD;
+                    state_time = 0;
                 }
             }
 
@@ -225,9 +227,12 @@ void update_entity(Entity* entity, int entity_index)
             }
         }
 
-        vec2 target_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * (entity->planet->radius + entity->offset));
-        camera_rotation += (entity->angle - camera_rotation) * 0.2f;
-        camera_position += (target_position - camera_position) * 0.1f;
+        if (state == STATE_PLAYING)
+        {
+            vec2 target_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * (entity->planet->radius + entity->offset));
+            camera_rotation += (entity->angle - camera_rotation) * 0.2f;
+            camera_position += (target_position - camera_position) * 0.1f;
+        }
     } break;
     case ENTITY_FIREBOI:
     {
@@ -304,24 +309,30 @@ void update_entity(Entity* entity, int entity_index)
         static const int WARNING_FRAMES = 2 * 60;
         float angle = fmod(fmod(entity->angle, TAU) + TAU, TAU);
         int frame = angle / TAU * LOOP_FRAMES;
+        int warning_frame = frame - WARNING_FRAMES;
+        if (warning_frame < 0) warning_frame += LOOP_FRAMES;
         int current_frame = entity->frames_alive % LOOP_FRAMES;
 
         vec2 my_top = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y - 10);
-        if ((current_frame + WARNING_FRAMES) % LOOP_FRAMES >= frame && current_frame < frame)
+        if ((warning_frame > frame) ? (current_frame >= warning_frame || current_frame < frame)
+                                    : (current_frame >= warning_frame && current_frame < frame))
         {
-            Particle p;
-            p.texture = TEXTURE_FIRE;
-            p.position = my_top + vec2(-cos(entity->angle), sin(entity->angle)) * (rand() % 1000 / 1000.0f - 0.5f) * entity->size.x;
-            float dx = p.position.x - entity->planet->position.x;
-            float dy = p.position.y - entity->planet->position.y;
-            float angle = atan2(dx, dy);
-            p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * 150.0f);
-            p.acceleration = { 0, 0 };
-            p.damping = 0.99;
-            p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
-            p.wobble = (float)(rand() % 1000 / 1000.0 * 15.0);
-            p.size = 12.0;
-            entity->planet->particles.push_back(p);
+            if (rand() % 3 == 0)
+            {
+                Particle p;
+                p.texture = TEXTURE_FIRE;
+                p.position = my_top + vec2(-cos(entity->angle), sin(entity->angle)) * (rand() % 1000 / 1000.0f - 0.5f) * entity->size.x;
+                float dx = p.position.x - entity->planet->position.x;
+                float dy = p.position.y - entity->planet->position.y;
+                float angle = atan2(dx, dy);
+                p.velocity = vec2(sin(angle), cos(angle)) * (20.0f + (rand() % 1000) / 1000.0f * 150.0f);
+                p.acceleration = { 0, 0 };
+                p.damping = 0.99;
+                p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+                p.wobble = (float)(rand() % 1000 / 1000.0 * 15.0);
+                p.size = 12.0;
+                entity->planet->particles.push_back(p);
+            }
         }
         if (current_frame == frame)
         {
