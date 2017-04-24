@@ -3,39 +3,28 @@
 # planet radius:    r <radius>
 # player:           o <angle> <offset>
 # tree:             t <angle> <offset> <height>
-# pillar:           p <angle> <offset> <height>
-# bridge:           b <angle from> <angle width> <base offset>
-# firebridge:       c <angle from> <angle width> <base offset>
+# pillar:           p <angle> <offset> <height> <size 1-8>
+# bridge:           b <angle from> <angle width> <offset>
+# firebridge:       c <angle from> <angle width> <offset>
 # fireboi:          f <angle> <offset> <height>
 
 r 500.0
 
-a 0 360 0
-a 30 60 335
-a 270 60 335
-
 l 3
-c 0 360 600
-p 30 0 350
-b 30 60 335
-p 90 0 350
-p 150 0 350
-c 150 60 335
-p 210 0 350
-p 270 0 350
-b 270 60 335
-p 330 0 350
+p  20 0 100 1
+p -20 0 100 1
+b -20 40 85
 
-l 1
-t 0 0 400
-t 120 0 400
-t 240 0 400
+p  100 0 100 1
+p -100 0 100 1
+p  130 0 300 3
+p -130 0 300 3
+p  160 0 400 4
+p -160 0 400 4
+b  160 40 385
+a  160 40 385
+
+a 0 360 0
 
 l 2
-o 0 405
-f 30 355 150
-f 90 355 150
-f 150 355 150
-f 210 355 150
-f 270 355 150
-f 330 355 150
+o 0 100

@@ -99,7 +99,14 @@ enum Texture
     TEXTURE_TALLPLANT_LAST, // doesn't have a texture assigned
 
     TEXTURE_TREE1,
+    TEXTURE_PILLAR_TINY,
+    TEXTURE_PILLAR_SHORT,
     TEXTURE_PILLAR,
+    TEXTURE_PILLAR_TALL,
+    TEXTURE_PILLAR_TALLER,
+    TEXTURE_PILLAR_VERY_TALL,
+    TEXTURE_PILLAR_VERY_VERY_TALL,
+    TEXTURE_PILLAR_TALLEST,
     TEXTURE_PLATFORM,
     TEXTURE_EVILPLATFORM,
 
@@ -163,6 +170,7 @@ struct Entity
     Texture texture;
     Entity_Kind brain;
     int frames_alive = 0;
+    int frames_idle = 0;
     int frames_action = 0;
     float offset;
     float angle;

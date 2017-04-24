@@ -1,5 +1,5 @@
 
-const int LEVEL_COUNT = 1;
+const int LEVEL_COUNT = 3;
 int current_level_index = 1;
 
 uint8* next_line(uint8** file)
@@ -56,13 +56,13 @@ void load_level(Planet* planet, int index)
         {
             float from, width, offset;
             sscanf((char*) line, "%*c%f%f%f", &from, &width, &offset);
-            place_platforms(planet, TEXTURE_PLATFORM, 100, from * DEG2RAD, (from + width) * DEG2RAD, offset);
+            place_platforms(planet, TEXTURE_PLATFORM, 25, from * DEG2RAD, (from + width) * DEG2RAD, offset);
         }
         else if (*line == 'c')
         {
             float from, width, offset;
             sscanf((char*) line, "%*c%f%f%f", &from, &width, &offset);
-            place_platforms(planet, TEXTURE_EVILPLATFORM, 100, from * DEG2RAD, (from + width) * DEG2RAD, offset);
+            place_platforms(planet, TEXTURE_EVILPLATFORM, 25, from * DEG2RAD, (from + width) * DEG2RAD, offset);
         }
         else if (*line == 'l')
         {
@@ -101,13 +101,15 @@ void load_level(Planet* planet, int index)
         else if (*line == 'p')
         {
             float angle, offset, height;
-            sscanf((char*) line, "%*c%f%f%f", &angle, &offset, &height);
+            int size;
+            sscanf((char*) line, "%*c%f%f%f%d", &angle, &offset, &height, &size);
             Entity e = {};
             e.planet = planet;
             e.angle = angle * DEG2RAD;
             e.offset = offset;
             e.layer = layer;
-            e.texture = TEXTURE_PILLAR;
+            Texture pillars[] = { TEXTURE_PILLAR_TINY, TEXTURE_PILLAR_SHORT, TEXTURE_PILLAR, TEXTURE_PILLAR_TALL, TEXTURE_PILLAR_TALLER, TEXTURE_PILLAR_VERY_TALL, TEXTURE_PILLAR_VERY_VERY_TALL, TEXTURE_PILLAR_TALLEST };
+            e.texture = pillars[size - 1];
             e.brain = ENTITY_STATIC;
             e.size = scale_to_height(e.texture, height);
             planet->entities.push_back(e);
@@ -372,9 +374,16 @@ void update_and_render_level(Planet* planet)
         render_string_centered(&regular_font, 0, -window_height / 2.0 + 120, 1, "Life is restored!");
     }
 
-    if (state == STATE_PLAYING && (!count_infested || input_skip_level))
+    if (state == STATE_PLAYING && !count_infested)
     {
         state = STATE_ENDING;
         state_time = 0;
+    }
+
+    if (input_skip_level)
+    {
+        input_skip_level = false;
+        current_level_index++;
+        load_level(planet, current_level_index);
     }
 }

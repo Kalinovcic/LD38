@@ -124,7 +124,14 @@ void create_atlas()
     add_texture(TEXTURE_TALLPLANT4, "tallplant4.png");
     add_texture(TEXTURE_TALLPLANT5, "tallplant5.png");
     add_texture(TEXTURE_TREE1, "tree1.png");
+    add_texture(TEXTURE_PILLAR_TINY, "pillartiny.png");
+    add_texture(TEXTURE_PILLAR_SHORT, "pillarshort.png");
     add_texture(TEXTURE_PILLAR, "pillar.png");
+    add_texture(TEXTURE_PILLAR_TALL, "pillartall.png");
+    add_texture(TEXTURE_PILLAR_TALLER, "pillartaller.png");
+    add_texture(TEXTURE_PILLAR_VERY_TALL, "pillarverytall.png");
+    add_texture(TEXTURE_PILLAR_VERY_VERY_TALL, "pillarveryverytall.png");
+    add_texture(TEXTURE_PILLAR_TALLEST, "pillartallest.png");
     add_texture(TEXTURE_PLATFORM, "platform.png");
     add_texture(TEXTURE_EVILPLATFORM, "evilplatform.png");
     add_texture(TEXTURE_EVILPLANT1, "evilplant1.png");

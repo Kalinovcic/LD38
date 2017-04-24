@@ -269,16 +269,25 @@ void update_entity(Entity* entity, int entity_index)
         if (entity->frames_action == 0)
         {
             entity->texture = TEXTURE_FIREBOI;
-            if (rand() % 300 == 0)
+            if (entity->frames_idle == 0)
             {
-                entity->texture = TEXTURE_FIREBOI_ATTACK;
-                entity->frames_action = 1;
+                entity->frames_idle = 60 + rand() % (4 * 60);
+            }
+            else
+            {
+                entity->frames_idle--;
+                if (entity->frames_idle == 0)
+                {
+                    entity->texture = TEXTURE_FIREBOI_ATTACK;
+                    entity->frames_action = 1;
+                    entity->frames_idle = rand() % (4 * 60);
+                }
             }
         }
         else
         {
             entity->frames_action++;
-            if (entity->frames_action >= 60)
+            if (entity->frames_action >= 2 * 60)
             {
                 entity->frames_action = 0;
 
@@ -350,14 +359,11 @@ void update_entity(Entity* entity, int entity_index)
             float angle_width;
             get_phyiscs_angles(entity, NULL, &angle_width, 1.0);
 
-            for (int i = 0; i < 4; i++)
-            {
-                e.angle = entity->angle + ((i + 0.5) / 4.0 - 0.5) * angle_width;
-                vec2 velocity = normalize(vec2(sin(e.angle), cos(e.angle))) * 800.0f;
-                e.x_velocity = velocity.x;
-                e.y_velocity = velocity.y;
-                entity->planet->entities.push_back(e);
-            }
+            e.angle = entity->angle;
+            vec2 velocity = normalize(vec2(sin(e.angle), cos(e.angle))) * 800.0f;
+            e.x_velocity = velocity.x;
+            e.y_velocity = velocity.y;
+            entity->planet->entities.push_back(e);
 
             play_sound_effect(sound_fireball, my_top, 0.4);
         }
