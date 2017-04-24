@@ -307,7 +307,7 @@ void load_font(Font* font, char* name)
         {
             int ia = y * FONT_BITMAP_SIZE + x;
             int ib = ia * 4;
-            bitmap[ib] = bitmap[ib + 1] = bitmap[ib + 2] = 1;
+            bitmap[ib] = bitmap[ib + 1] = bitmap[ib + 2] = 255;
             bitmap[ib + 3] = alphamap[ia];
         }
     }
@@ -345,6 +345,20 @@ void render_string(Font* font, float x, float y, float scale, char* text)
     }
 
     end_batch();
+}
+
+void render_string_centered(Font* font, float x, float y, float scale, char* text)
+{
+    stbtt_aligned_quad q;
+    float tx = 0, ty = 0;
+    char* t = text;
+    while (*t)
+    {
+        if (*t >= 32 && *t < 128)
+            stbtt_GetBakedQuad(&font->cdata[0], FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, *t - 32, &tx, &ty, &q, 1);
+        t++;
+    }
+    render_string(font, x - tx * 0.5, y, scale, text);
 }
 
 //////////////////

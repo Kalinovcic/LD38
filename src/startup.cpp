@@ -101,6 +101,7 @@ void handle_events()
             if (scancode == SDL_SCANCODE_LEFT)  input_left  = down;
             if (scancode == SDL_SCANCODE_RIGHT) input_right = down;
             if (scancode == SDL_SCANCODE_SPACE) input_space = down;
+            if (scancode == SDL_SCANCODE_F4) input_skip_level = down;
             if (down && scancode == SDL_SCANCODE_F5)
             {
                 auto flags = SDL_GetWindowFlags(the_window);
@@ -120,7 +121,8 @@ void entry()
     init();
 
     Planet planet;
-    load_level(&planet, 1);
+    current_level_index = 1;
+    load_level(&planet, current_level_index);
     camera_position = -planet.position;
 
     while (!game_requests_close)

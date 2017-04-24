@@ -206,6 +206,7 @@ enum Level_State
     STATE_INTRO,
     STATE_SHORT_INTRO,
     STATE_ENDING,
+    STATE_STORY,
 };
 
 Level_State state;
@@ -232,6 +233,7 @@ int window_width, window_height;
 bool input_left;
 bool input_right;
 bool input_space;
+bool input_skip_level;
 
 float camera_zoom;
 float camera_rotation;

@@ -1,4 +1,7 @@
 
+const int LEVEL_COUNT = 1;
+int current_level_index = 1;
+
 uint8* next_line(uint8** file)
 {
     uint8* f = *file;
@@ -253,7 +256,7 @@ void update_and_render_level(Planet* planet)
 
         if (state_time >= DEAD_DURATION)
         {
-            load_level(planet, 1);
+            load_level(planet, current_level_index);
             state = STATE_SHORT_INTRO;
             state_time = 0;
 
@@ -271,6 +274,73 @@ void update_and_render_level(Planet* planet)
                 }
             }
         }
+    } break;
+    case STATE_ENDING:
+    {
+        static const float ENDING_DURATION = 12.0;
+        static const float ZOOM_DURATION = ENDING_DURATION * 0.6;
+        static const float FLY_AWAY_BEGINNING = ENDING_DURATION * 0.8;
+
+        float light = 1 - smoothstep(FLY_AWAY_BEGINNING, ENDING_DURATION, state_time);
+        camera_color = vec4(light);
+        sky_color *= light;
+
+        camera_zoom = 1.0 - smoothstep(0.0f, ZOOM_DURATION, state_time) * 0.8;
+        if (state_time >= FLY_AWAY_BEGINNING)
+        {
+            vec2 target_position = -vec2(50000, 10000);
+            camera_position += (target_position - camera_position) * 0.001f;
+            camera_rotation -= 0.01;
+        }
+        else
+        {
+            vec2 target_position = -planet->position;
+            camera_position += (target_position - camera_position) * 0.01f;
+            camera_rotation += 0.001;
+        }
+
+        if (state_time >= ENDING_DURATION)
+        {
+            if (current_level_index == LEVEL_COUNT)
+            {
+                state = STATE_STORY;
+                state_time = 0;
+            }
+            else
+            {
+                current_level_index++;
+                load_level(planet, current_level_index);
+            }
+        }
+    } break;
+    case STATE_STORY:
+    {
+        static char* LINES[] = {
+            "This is a story thing #1",
+            "This is another story thing",
+            "This is the last story thing",
+        };
+
+        glClearColor(0, 0, 0, 1);
+        defer(state_time += 1 / 60.0);
+
+        static const float LINE_DURATION = 8.0;
+        static const float STORY_DURATION = 3 * LINE_DURATION;
+        int current_line = (int)(state_time / LINE_DURATION);
+        if (current_line >= sizeof(LINES)/sizeof(char*))
+            return;
+
+        float line_time = fmod(state_time, LINE_DURATION);
+        float light = 1.0f;
+        if (line_time < LINE_DURATION * 0.2)
+            light = smoothstep(0.0f, LINE_DURATION * 0.2f, line_time);
+        if (line_time > LINE_DURATION * 0.8)
+            light = 1 - smoothstep(LINE_DURATION * 0.8f, LINE_DURATION, line_time);
+        camera_color = vec4(1, 1, 1, light);
+        render_string_centered(&regular_font, 0, 0, 1, LINES[current_line]);
+        camera_color = vec4(1);
+
+        return;
     } break;
     }
     glClearColor(sky_color.r, sky_color.g, sky_color.b, sky_color.a);
@@ -294,4 +364,17 @@ void update_and_render_level(Planet* planet)
     if (count_infested && life_int == 100) life_int--;
     sprintf(buff, "Life: %d%%", life_int);
     render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 50, 1, buff);
+
+    if (state == STATE_ENDING)
+    {
+        float light = smoothstep(0.0f, 1.0f, state_time);
+        camera_color *= light;
+        render_string_centered(&regular_font, 0, -window_height / 2.0 + 120, 1, "Life is restored!");
+    }
+
+    if (state == STATE_PLAYING && (!count_infested || input_skip_level))
+    {
+        state = STATE_ENDING;
+        state_time = 0;
+    }
 }

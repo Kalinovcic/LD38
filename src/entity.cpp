@@ -115,16 +115,18 @@ void update_entity(Entity* entity, int entity_index)
     {
     case ENTITY_PLAYER:
     {
-        float legs_radius = (entity->planet->radius + entity->offset) * TAU;
-        float move_distance = 0;
-
         bool walking = input_left || input_right;
-        if (input_left)  { entity->flags &= ~ENTITY_FLAG_FLIP; move_distance -= PLAYER_SPEED / 60.0; }
-        if (input_right) { entity->flags |=  ENTITY_FLAG_FLIP; move_distance += PLAYER_SPEED / 60.0; }
-        entity->angle += move_distance / legs_radius * TAU;
+        if (state == STATE_PLAYING)
+        {
+            float legs_radius = (entity->planet->radius + entity->offset) * TAU;
+            float move_distance = 0;
+            if (input_left)  { entity->flags &= ~ENTITY_FLAG_FLIP; move_distance -= PLAYER_SPEED / 60.0; }
+            if (input_right) { entity->flags |=  ENTITY_FLAG_FLIP; move_distance += PLAYER_SPEED / 60.0; }
+            entity->angle += move_distance / legs_radius * TAU;
+        }
 
         float ground_offset = ground(entity);
-        bool jump = input_space && entity->offset == ground_offset;
+        bool jump = state == STATE_PLAYING && input_space && entity->offset == ground_offset;
         if (jump)
             entity->y_velocity = sqrt(2 * GRAVITY * PLAYER_JUMP_HEIGHT);
         entity->offset += entity->y_velocity / 60.0;
@@ -163,72 +165,72 @@ void update_entity(Entity* entity, int entity_index)
             }
         }
 
-        for (int other_index = 0; other_index < entity->planet->entities.size(); other_index++)
-        {
-            Entity* other = &entity->planet->entities[other_index];
-            vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
-
-            if (collision(entity, other))
-            {
-                if (other->flags & ENTITY_FLAG_STOMPABLE)
-                {
-                    bool kill = (entity->y_velocity < 0) && ((other->offset + other->size.y * 0.5) < entity->offset);
-                    if (kill)
-                    {
-                        entity->y_velocity = -entity->y_velocity * 0.95;
-                        entity->planet->remove_list.push_back(other_index);
-                        death_animation(other);
-
-                        play_sound_effect(sound_bounce, my_bottom, 0.4);
-                    }
-                }
-                else if (other->flags & ENTITY_FLAG_HURTS)
-                {
-                    entity->planet->remove_list.push_back(entity_index);
-                    entity->planet->remove_list.push_back(other_index);
-                    death_animation(entity);
-                    state = STATE_DEAD;
-                    state_time = 0;
-                }
-            }
-
-            if (length(my_bottom - other_bottom) < 80)
-            {
-                if (other->flags & ENTITY_FLAG_INFESTED)
-                {
-                    if (entity->frames_action % 6 == 0)
-                    {
-                        play_sound_effect(sound_grass_life[rand() % 2], my_bottom, 0.2);
-                    }
-                    entity->frames_action++;
-
-                    other->flags &= ~ENTITY_FLAG_INFESTED;
-                    other->flags |=  ENTITY_FLAG_LIFE;
-
-                    if (other->texture >= TEXTURE_EVILPLANT1 && other->texture < TEXTURE_EVILPLANT_LAST)
-                        other->texture = (Texture)(TEXTURE_PLANT1 + (other->texture - TEXTURE_EVILPLANT1));
-                    if (other->texture >= TEXTURE_EVILTALLPLANT1 && other->texture < TEXTURE_EVILTALLPLANT_LAST)
-                        other->texture = (Texture)(TEXTURE_TALLPLANT1 + (other->texture - TEXTURE_EVILTALLPLANT1));
-
-                    for (int i = 0; i < 3; i++)
-                    {
-                        Particle p;
-                        p.texture = (Texture)(TEXTURE_SPARKLE1 + rand() % (TEXTURE_SPARKLE_LAST - TEXTURE_SPARKLE1));
-                        p.position = other_bottom + vec2(rand() % 1000 / 1000.0 * 8.0, rand() % 1000 / 1000.0 * 8.0);
-                        p.velocity = normalize(p.position - other->planet->position) * (float)(rand() % 1000 / 1000.0 * 700.0);
-                        p.acceleration = { 0, 0 };
-                        p.damping = 0.99;
-                        p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
-                        p.wobble = (float)(rand() % 1000 / 1000.0 * 20.0);
-                        p.size = 12.0;
-                        other->planet->particles.push_back(p);
-                    }
-                }
-            }
-        }
-
         if (state == STATE_PLAYING)
         {
+            for (int other_index = 0; other_index < entity->planet->entities.size(); other_index++)
+            {
+                Entity* other = &entity->planet->entities[other_index];
+                vec2 other_bottom = other->planet->position + vec2(sin(other->angle), cos(other->angle)) * (other->planet->radius + other->offset);
+
+                if (collision(entity, other))
+                {
+                    if (other->flags & ENTITY_FLAG_STOMPABLE)
+                    {
+                        bool kill = (entity->y_velocity < 0) && ((other->offset + other->size.y * 0.5) < entity->offset);
+                        if (kill)
+                        {
+                            entity->y_velocity = -entity->y_velocity * 0.95;
+                            entity->planet->remove_list.push_back(other_index);
+                            death_animation(other);
+
+                            play_sound_effect(sound_bounce, my_bottom, 0.4);
+                        }
+                    }
+                    else if (other->flags & ENTITY_FLAG_HURTS)
+                    {
+                        entity->planet->remove_list.push_back(entity_index);
+                        entity->planet->remove_list.push_back(other_index);
+                        death_animation(entity);
+                        state = STATE_DEAD;
+                        state_time = 0;
+                    }
+                }
+
+                if (length(my_bottom - other_bottom) < 80)
+                {
+                    if (other->flags & ENTITY_FLAG_INFESTED)
+                    {
+                        if (entity->frames_action % 6 == 0)
+                        {
+                            play_sound_effect(sound_grass_life[rand() % 2], my_bottom, 0.2);
+                        }
+                        entity->frames_action++;
+
+                        other->flags &= ~ENTITY_FLAG_INFESTED;
+                        other->flags |=  ENTITY_FLAG_LIFE;
+
+                        if (other->texture >= TEXTURE_EVILPLANT1 && other->texture < TEXTURE_EVILPLANT_LAST)
+                            other->texture = (Texture)(TEXTURE_PLANT1 + (other->texture - TEXTURE_EVILPLANT1));
+                        if (other->texture >= TEXTURE_EVILTALLPLANT1 && other->texture < TEXTURE_EVILTALLPLANT_LAST)
+                            other->texture = (Texture)(TEXTURE_TALLPLANT1 + (other->texture - TEXTURE_EVILTALLPLANT1));
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            Particle p;
+                            p.texture = (Texture)(TEXTURE_SPARKLE1 + rand() % (TEXTURE_SPARKLE_LAST - TEXTURE_SPARKLE1));
+                            p.position = other_bottom + vec2(rand() % 1000 / 1000.0 * 8.0, rand() % 1000 / 1000.0 * 8.0);
+                            p.velocity = normalize(p.position - other->planet->position) * (float)(rand() % 1000 / 1000.0 * 700.0);
+                            p.acceleration = { 0, 0 };
+                            p.damping = 0.99;
+                            p.life = 0.3 + (rand() % 1000 / 1000.0 * 0.3);
+                            p.wobble = (float)(rand() % 1000 / 1000.0 * 20.0);
+                            p.size = 12.0;
+                            other->planet->particles.push_back(p);
+                        }
+                    }
+                }
+            }
+
             vec2 target_position = -(entity->planet->position + vec2(sin(camera_rotation), cos(camera_rotation)) * (entity->planet->radius + entity->offset));
             camera_rotation += (entity->angle - camera_rotation) * 0.2f;
             camera_position += (target_position - camera_position) * 0.1f;
