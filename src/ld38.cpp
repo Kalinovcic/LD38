@@ -293,8 +293,8 @@ void entry();
 
 }
 
-// int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-int main(int argc, char** argv)
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+// int main(int argc, char** argv)
 {
     ld38::entry();
     return EXIT_SUCCESS;
