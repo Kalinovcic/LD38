@@ -1,5 +1,5 @@
 
-const int LEVEL_COUNT = 3;
+const int LEVEL_COUNT = 4;
 int current_level_index = 1;
 
 uint8* next_line(uint8** file)
@@ -179,7 +179,10 @@ void load_level(Planet* planet, int index)
 
 void update_and_render_level(Planet* planet)
 {
-    update_planet(planet);
+    if (!(state == STATE_TITLE || state == STATE_TITLE_STORY || state == STATE_STORY))
+    {
+        update_planet(planet);
+    }
 
     vec4 sky_color = vec4(86/255.0, 162/255.0, 239/255.0, 1);
     switch (state)
@@ -452,7 +455,7 @@ void update_and_render_level(Planet* planet)
         {
             line_count = 3;
             lines[0] = "You've done well!";
-            lines[1] = "Life in this sector is restored!";
+            lines[1] = "Life in this star system is restored!";
             lines[2] = "Take care";
         }
 
@@ -468,6 +471,8 @@ void update_and_render_level(Planet* planet)
             camera_color = vec4(1, 1, 1, 0.5);
             render_string_centered(&regular_font, 0, -50, 0.5, "< esc to quit >");
             render_string_centered(&regular_font, 0, -80, 0.5, "< space to restart >");
+            render_string_centered(&regular_font, 0, -window_height / 2 + 60, 0.5, "Made by Lovro Kalinovcic");
+            render_string_centered(&regular_font, 0, -window_height / 2 + 30, 0.5, "for Ludum Dare 38");
 
             if (input_escape)
             {
@@ -475,6 +480,7 @@ void update_and_render_level(Planet* planet)
             }
             if (input_space)
             {
+                input_space = false;
                 state = STATE_TITLE;
                 state_time = 0;
             }
@@ -557,7 +563,15 @@ void update_and_render_level(Planet* planet)
     if (input_skip_level)
     {
         input_skip_level = false;
-        current_level_index++;
-        load_level(planet, current_level_index);
+        if (current_level_index == LEVEL_COUNT)
+        {
+            state = STATE_STORY;
+            state_time = 0;
+        }
+        else
+        {
+            current_level_index++;
+            load_level(planet, current_level_index);
+        }
     }
 }
