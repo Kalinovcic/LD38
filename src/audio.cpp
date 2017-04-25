@@ -13,7 +13,7 @@ Mix_Chunk* load_sound_effect(char* name)
 
 void play_sound_effect(Mix_Chunk* chunk, vec2 source_position, float volume_multiplier)
 {
-    if (!sound) return;
+    if (!sound || sound_disabled) return;
     static const float SOUND_CONSTANT_DISTANCE = 400;
     static const float SOUND_FALLOFF_DISTANCE  = 500;
 
@@ -33,7 +33,11 @@ void play_sound_effect(Mix_Chunk* chunk, vec2 source_position, float volume_mult
 void init_audio()
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0)
-        report("SDL_mixer failed to initialize!");
+    {
+        sound = false;
+        sound_disabled = true;
+        return;
+    }
 
     sound_grass_walk[0] = load_sound_effect("grasswalk1.wav");
     sound_grass_walk[1] = load_sound_effect("grasswalk2.wav");
@@ -49,6 +53,7 @@ void init_audio()
 
 void quit_audio()
 {
+    if (sound_disabled) return;
     if (sound_grass_walk[0]) Mix_FreeChunk(sound_grass_walk[0]);
     if (sound_grass_walk[1]) Mix_FreeChunk(sound_grass_walk[1]);
     if (sound_grass_walk[2]) Mix_FreeChunk(sound_grass_walk[2]);

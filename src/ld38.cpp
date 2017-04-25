@@ -252,6 +252,7 @@ int window_width, window_height;
 
 int murder_count;
 bool sound = true;
+bool sound_disabled = false;
 
 bool input_left;
 bool input_right;
