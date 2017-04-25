@@ -23,6 +23,9 @@ uint8* next_line(uint8** file)
 void load_level(Planet* planet, int index)
 {
     srand(time(0));
+    for (auto hint : planet->hints)
+        free(hint);
+    planet->hints.clear();
     planet->position = { 0, 0 };
     planet->entities.clear();
     planet->remove_list.clear();
@@ -42,7 +45,27 @@ void load_level(Planet* planet, int index)
         while (*line == ' ' || *line == '\t') line++;
         if (*line == 0) continue;
         else if (*line == '#') continue;
-        if (*line == 'r')
+        else if (*line == 'h')
+        {
+            line += 2;
+            while (*line)
+            {
+                uint8* hint = line;
+                while (*line && *line != '@')
+                    line++;
+                if (*line == '@')
+                {
+                    *line = 0;
+                    line++;
+                }
+                int length = line - hint;
+                auto buf = (char*) malloc(length + 1);
+                memcpy(buf, hint, length);
+                buf[length] = 0;
+                planet->hints.push_back(buf);
+            }
+        }
+        else if (*line == 'r')
         {
             sscanf((char*) line, "%*c%f", &planet->radius);
         }
@@ -129,6 +152,21 @@ void load_level(Planet* planet, int index)
             e.size = scale_to_height(e.texture, height);
             planet->entities.push_back(e);
         }
+        else if (*line == 'm')
+        {
+            float angle, offset, height;
+            sscanf((char*) line, "%*c%f%f%f", &angle, &offset, &height);
+            Entity e = {};
+            e.planet = planet;
+            e.flags = ENTITY_FLAG_ENEMY;
+            e.angle = angle * DEG2RAD;
+            e.offset = offset;
+            e.layer = layer;
+            e.texture = TEXTURE_MISSILE;
+            e.brain = ENTITY_MISSILE;
+            e.size = scale_to_height(e.texture, height);
+            planet->entities.push_back(e);
+        }
         else
         {
             printf("Unrecognized planet line: %s\n", line);
@@ -208,7 +246,10 @@ void update_and_render_level(Planet* planet)
             }
         }
         if (state_time >= INTRO_DURATION)
+        {
             state = STATE_PLAYING;
+            state_time = 0;
+        }
     } break;
     case STATE_SHORT_INTRO:
     {
@@ -233,7 +274,10 @@ void update_and_render_level(Planet* planet)
         camera_zoom = 0.4 + smoothstep(0.0f, ZOOM_DURATION, state_time) * 0.6;
 
         if (state_time >= INTRO_DURATION)
+        {
             state = STATE_PLAYING;
+            state_time = 0;
+        }
     } break;
     case STATE_PLAYING:
     {
@@ -315,22 +359,48 @@ void update_and_render_level(Planet* planet)
             }
         }
     } break;
-    case STATE_STORY:
+    case STATE_TITLE:
     {
-        static char* LINES[] = {
-            "This is a story thing #1",
-            "This is another story thing",
-            "This is the last story thing",
-        };
+        glClearColor(0, 0, 0, 1);
+        defer(state_time += 1 / 60.0);
+        camera_color = vec4(1, 1, 1, 1);
+        render_string_centered(&regular_font, 0, 0, 2, "CARETAKER");
+        camera_color = vec4(1, 1, 1, 0.5);
+        render_string_centered(&regular_font, 0, -50, 0.5, "< space to begin >");
+        render_string_centered(&regular_font, 0, -80, 0.5, "< F5 to toggle fullscreen >");
+        render_string_centered(&regular_font, 0, -110, 0.5, "< F6 to toggle sound >");
+
+        if (input_space)
+        {
+            state = STATE_TITLE_STORY;
+            state_time = 0;
+        }
+        return;
+    } break;
+    case STATE_TITLE_STORY:
+    {
+        int line_count;
+        char* lines[10];
+        line_count = 5;
+        lines[0] = "Hi,";
+        lines[1] = "Life in our star system is being infested.";
+        lines[2] = "You'll be sent to several smaller planets";
+        lines[3] = "try your best to help the dying plant life.";
+        lines[4] = "Thank you!";
 
         glClearColor(0, 0, 0, 1);
         defer(state_time += 1 / 60.0);
 
-        static const float LINE_DURATION = 8.0;
-        static const float STORY_DURATION = 3 * LINE_DURATION;
+        static const float LINE_DURATION = 5.0;
+        static const float STORY_DURATION = line_count * LINE_DURATION;
         int current_line = (int)(state_time / LINE_DURATION);
-        if (current_line >= sizeof(LINES)/sizeof(char*))
+        if (current_line >= line_count || input_skip_level)
+        {
+            input_skip_level = false;
+            current_level_index = 1;
+            load_level(planet, current_level_index);
             return;
+        }
 
         float line_time = fmod(state_time, LINE_DURATION);
         float light = 1.0f;
@@ -339,7 +409,85 @@ void update_and_render_level(Planet* planet)
         if (line_time > LINE_DURATION * 0.8)
             light = 1 - smoothstep(LINE_DURATION * 0.8f, LINE_DURATION, line_time);
         camera_color = vec4(1, 1, 1, light);
-        render_string_centered(&regular_font, 0, 0, 1, LINES[current_line]);
+        render_string_centered(&regular_font, 0, 0, 1, lines[current_line]);
+        camera_color = vec4(1);
+        return;
+    }
+    case STATE_STORY:
+    {
+        char custom[256];
+        char custom2[256];
+        int line_count;
+        char* lines[10];
+        if (murder_count)
+        {
+            char* username = get_user_name();
+            if (username)
+            {
+                char* c = username;
+                while (*c)
+                {
+                    if (*c < 32 || *c >= 128)
+                    {
+                        username = NULL;
+                        break;
+                    }
+                    c++;
+                }
+            }
+            if (username)
+                sprintf(custom, "But, %s...", username);
+            else
+                sprintf(custom, "But...");
+            sprintf(custom2, "You murdered %d infestor%s.", murder_count, (murder_count > 1) ? "s" : "");
+
+            line_count = 5;
+            lines[0] = "You've done well!";
+            lines[1] = "Life in this star system is restored";
+            lines[2] = custom;
+            lines[3] = custom2;
+            lines[4] = "Isn't that hypocritical...";
+        }
+        else
+        {
+            line_count = 3;
+            lines[0] = "You've done well!";
+            lines[1] = "Life in this sector is restored!";
+            lines[2] = "Take care";
+        }
+
+        glClearColor(0, 0, 0, 1);
+        defer(state_time += 1 / 60.0);
+
+        static const float LINE_DURATION = 5.0;
+        static const float STORY_DURATION = line_count * LINE_DURATION;
+        int current_line = (int)(state_time / LINE_DURATION);
+        if (current_line >= line_count)
+        {
+            current_line = line_count - 1;
+            camera_color = vec4(1, 1, 1, 0.5);
+            render_string_centered(&regular_font, 0, -50, 0.5, "< esc to quit >");
+            render_string_centered(&regular_font, 0, -80, 0.5, "< space to restart >");
+
+            if (input_escape)
+            {
+                game_requests_close = true;
+            }
+            if (input_space)
+            {
+                state = STATE_TITLE;
+                state_time = 0;
+            }
+        }
+
+        float line_time = fmod(state_time, LINE_DURATION);
+        float light = 1.0f;
+        if (line_time < LINE_DURATION * 0.2 && state_time < STORY_DURATION)
+            light = smoothstep(0.0f, LINE_DURATION * 0.2f, line_time);
+        if (line_time > LINE_DURATION * 0.8 && current_line < line_count - 1)
+            light = 1 - smoothstep(LINE_DURATION * 0.8f, LINE_DURATION, line_time);
+        camera_color = vec4(1, 1, 1, light);
+        render_string_centered(&regular_font, 0, 0, 1, lines[current_line]);
         camera_color = vec4(1);
 
         return;
@@ -365,19 +513,45 @@ void update_and_render_level(Planet* planet)
     int life_int = (int)(life * 100 + 0.5);
     if (count_infested && life_int == 100) life_int--;
     sprintf(buff, "Life: %d%%", life_int);
-    render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 50, 1, buff);
+    render_string(&regular_font, window_width / -2.0 + 50, window_height / 2.0 - 70, 1, buff);
+
+    if (state == STATE_PLAYING)
+    {
+        vec4 previous_color = camera_color;
+        camera_color = vec4(1, 1, 1, smoothstep(0.0f, 1.0f, state_time));
+        float y = window_height / 2.0 - 70;
+        for (char* hint : planet->hints)
+        {
+            render_string_centered(&regular_font, 0, y, 0.5, hint);
+            y -= 30;
+        }
+        camera_color = previous_color;
+    }
 
     if (state == STATE_ENDING)
     {
         float light = smoothstep(0.0f, 1.0f, state_time);
         camera_color *= light;
-        render_string_centered(&regular_font, 0, -window_height / 2.0 + 120, 1, "Life is restored!");
+        render_string_centered(&regular_font, 0, -window_height / 2.0 + 50, 1, "Life is restored!");
     }
 
-    if (state == STATE_PLAYING && !count_infested)
+    if (state == STATE_PLAYING && (count_infested <= 2))
     {
         state = STATE_ENDING;
         state_time = 0;
+        for (int index = 0; index < planet->entities.size(); index++)
+        {
+            auto& e = planet->entities[index];
+            if (e.flags & ENTITY_FLAG_INFESTED)
+            {
+                e.flags &= ~ENTITY_FLAG_INFESTED;
+                e.flags |=  ENTITY_FLAG_LIFE;
+                if (e.texture >= TEXTURE_EVILPLANT1 && e.texture < TEXTURE_EVILPLANT_LAST)
+                    e.texture = (Texture)(TEXTURE_PLANT1 + (e.texture - TEXTURE_EVILPLANT1));
+                if (e.texture >= TEXTURE_EVILTALLPLANT1 && e.texture < TEXTURE_EVILTALLPLANT_LAST)
+                    e.texture = (Texture)(TEXTURE_TALLPLANT1 + (e.texture - TEXTURE_EVILTALLPLANT1));
+            }
+        }
     }
 
     if (input_skip_level)

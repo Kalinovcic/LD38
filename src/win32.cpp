@@ -22,3 +22,13 @@ void report(const char* message)
     quit();
     exit(EXIT_FAILURE);
 }
+
+char* get_user_name()
+{
+    auto username = (char*) malloc(129);
+    memset(username, 0, 129);
+    DWORD username_length = 128;
+    if (GetUserNameA(username, &username_length) == 0)
+        return 0;
+    return username;
+}

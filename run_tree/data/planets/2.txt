@@ -8,6 +8,7 @@
 # firebridge:       c <angle from> <angle width> <base offset>
 # fireboi:          f <angle> <offset> <height>
 
+h Stay safe!@Jump on infestors to stomp them
 r 600.0
 a 0 360 0
 

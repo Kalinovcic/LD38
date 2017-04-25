@@ -13,6 +13,7 @@ Mix_Chunk* load_sound_effect(char* name)
 
 void play_sound_effect(Mix_Chunk* chunk, vec2 source_position, float volume_multiplier)
 {
+    if (!sound) return;
     static const float SOUND_CONSTANT_DISTANCE = 400;
     static const float SOUND_FALLOFF_DISTANCE  = 500;
 
@@ -42,6 +43,8 @@ void init_audio()
     sound_bounce = load_sound_effect("bounce.wav");
     sound_fireball = load_sound_effect("fireball.wav");
     sound_fireball_out = load_sound_effect("fireballout.wav");
+    sound_missile_launch = load_sound_effect("missilelaunch.wav");
+    sound_missile_hit = load_sound_effect("missilehit.wav");
 }
 
 void quit_audio()
@@ -54,4 +57,6 @@ void quit_audio()
     if (sound_bounce) Mix_FreeChunk(sound_bounce);
     if (sound_fireball) Mix_FreeChunk(sound_fireball);
     if (sound_fireball_out) Mix_FreeChunk(sound_fireball_out);
+    if (sound_missile_launch) Mix_FreeChunk(sound_missile_launch);
+    if (sound_missile_hit) Mix_FreeChunk(sound_missile_hit);
 }

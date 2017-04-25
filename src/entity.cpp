@@ -38,11 +38,18 @@ bool collision(Entity* e1, Entity* e2)
 
 static const float GROUND_EPSILON = 5.0;
 
-float ground(Entity* walker)
+float proper_offset(Entity* e, float height)
+{
+    return length(vec2(sin(e->angle), cos(e->angle)) * (e->planet->radius + e->offset)
+                + vec2(sin(e->angle + e->angle_offset), cos(e->angle + e->angle_offset)) * e->size.y * height) - e->planet->radius;
+}
+
+float ground(Entity* walker, float height = 0.0f)
 {
     Planet* planet = walker->planet;
     float ea1, ew1;
-    get_phyiscs_angles(walker, &ea1, &ew1, 0.0f);
+    get_phyiscs_angles(walker, &ea1, &ew1, height);
+    float offset = proper_offset(walker, height);
 
     float ground = 0;
     for (Entity& e : planet->entities)
@@ -60,7 +67,7 @@ float ground(Entity* walker)
             float dy = center.y - planet->position.y;
             float radius = sqrt(dx * dx + dy * dy);
             float poffset = radius - planet->radius;
-            if (poffset - GROUND_EPSILON > walker->offset) continue;
+            if (poffset - GROUND_EPSILON > offset) continue;
 
             float a1 = ea1, w1 = ew1;
             float w2 = 2 * atan((pw / 2) / radius);
@@ -179,6 +186,8 @@ void update_entity(Entity* entity, int entity_index)
                         bool kill = (entity->y_velocity < 0) && ((other->offset + other->size.y * 0.5) < entity->offset);
                         if (kill)
                         {
+                            murder_count++;
+
                             entity->y_velocity = -entity->y_velocity * 0.95;
                             entity->planet->remove_list.push_back(other_index);
                             death_animation(other);
@@ -188,6 +197,10 @@ void update_entity(Entity* entity, int entity_index)
                     }
                     else if (other->flags & ENTITY_FLAG_HURTS)
                     {
+                        if (other->brain == ENTITY_MISSILE)
+                            play_sound_effect(sound_missile_hit, other_bottom, 1.0f);
+                        else if (other->brain == ENTITY_GRAVITY_BULLET)
+                            play_sound_effect(sound_fireball_out, other_bottom, 1.0f);
                         entity->planet->remove_list.push_back(entity_index);
                         entity->planet->remove_list.push_back(other_index);
                         death_animation(entity);
@@ -196,7 +209,14 @@ void update_entity(Entity* entity, int entity_index)
                     }
                 }
 
-                if (length(my_bottom - other_bottom) < 80)
+                float distance = length(my_bottom - other_bottom);
+                if (distance < 300 && other->brain == ENTITY_MISSILE && !other->target)
+                {
+                    play_sound_effect(sound_missile_launch, other_bottom, 0.8);
+                    other->flags |= ENTITY_FLAG_HURTS;
+                    other->target = entity;
+                }
+                if (distance < 80)
                 {
                     if (other->flags & ENTITY_FLAG_INFESTED)
                     {
@@ -360,12 +380,88 @@ void update_entity(Entity* entity, int entity_index)
             get_phyiscs_angles(entity, NULL, &angle_width, 1.0);
 
             e.angle = entity->angle;
-            vec2 velocity = normalize(vec2(sin(e.angle), cos(e.angle))) * 800.0f;
+            vec2 velocity = normalize(vec2(sin(e.angle), cos(e.angle))) * 700.0f;
             e.x_velocity = velocity.x;
             e.y_velocity = velocity.y;
             entity->planet->entities.push_back(e);
 
-            play_sound_effect(sound_fireball, my_top, 0.4);
+            if (!(entity->flags & ENTITY_FLAG_MUTE))
+                play_sound_effect(sound_fireball, my_top, 0.4);
+        }
+    } break;
+    case ENTITY_MISSILE:
+    {
+        if (entity->target)
+        {
+            float old_offset = proper_offset(entity, 1.0);
+            float ground_offset = ground(entity, 1.0f);
+
+            vec2 entity_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
+            vec2 velocity = vec2(sin(entity->angle + entity->angle_offset), cos(entity->angle + entity->angle_offset)) * 500.0f;
+            entity_bottom += velocity / 60.0f;
+            float dx = entity_bottom.x - entity->planet->position.x;
+            float dy = entity_bottom.y - entity->planet->position.y;
+            entity->offset = length(entity_bottom - entity->planet->position) - entity->planet->radius;
+            entity->angle = atan2(dx, dy);
+
+            float new_ground_offset = ground(entity);
+            if (proper_offset(entity, 1.0) < ground_offset + GROUND_EPSILON || new_ground_offset - GROUND_EPSILON > old_offset)
+            {
+                play_sound_effect(sound_missile_hit, entity_bottom, 0.6f);
+                entity->planet->remove_list.push_back(entity_index);
+                break;
+            }
+
+            entity->frames_action++;
+            if (entity->frames_action >= 30)
+            {
+                auto target = entity->target;
+                entity_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset + entity->size.y * 0.5f);
+                vec2 target_bottom = target->planet->position + vec2(sin(target->angle), cos(target->angle)) * (target->planet->radius + target->offset + target->size.y * 0.5f);
+                dx = entity_bottom.x - target_bottom.x;
+                dy = entity_bottom.y - target_bottom.y;
+                float a1 = atan2(dx, dy);
+                float a2 = entity->angle + entity->angle_offset;
+                a1 = fmod(fmod(a1, TAU) + TAU, TAU);
+                a2 = fmod(fmod(a2, TAU) + TAU, TAU);
+                const float TURN_ACCELERATION = 3.0 * TAU;
+                if (a1 < a2)
+                {
+                    float w = a2 - a1;
+                    if (w < PI)
+                        entity->x_velocity += TURN_ACCELERATION / 60.0;
+                    else
+                        entity->x_velocity -= TURN_ACCELERATION / 60.0;
+                }
+                else
+                {
+                    float w = a1 - a2;
+                    if (w < PI)
+                        entity->x_velocity -= TURN_ACCELERATION / 60.0;
+                    else
+                        entity->x_velocity += TURN_ACCELERATION / 60.0;
+                }
+                entity->x_velocity *= 0.9;
+                a2 += entity->x_velocity / 60.0;
+                entity->angle_offset = a2 - entity->angle;
+            }
+
+            entity_bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
+            for (int i = 0; i < 2; i++)
+            {
+                float angle = entity->angle + entity->angle_offset;
+                Particle p;
+                p.texture = TEXTURE_FIRE;
+                p.position = entity_bottom + vec2(-cos(angle), sin(angle)) * (float)((i - 0.5) * entity->size.x * 0.8);
+                angle += ((rand() % 1000 / 1000.0 - 0.5) * TAU / 30.0);
+                p.velocity = -vec2(sin(angle), cos(angle)) * (100.0f + (rand() % 1000) / 1000.0f * 300.0f);
+                p.acceleration = { 0, 0 };
+                p.damping = 0.99;
+                p.life = 0.2 + (rand() % 1000 / 1000.0 * 0.2);
+                p.wobble = (float)(rand() % 1000 / 1000.0 * 5.0);
+                p.size = 12.0;
+                entity->planet->particles.push_back(p);
+            }
         }
     } break;
     case ENTITY_GRAVITY_BULLET:
@@ -416,5 +512,5 @@ void update_entity(Entity* entity, int entity_index)
 void render_entity(Entity* entity)
 {
     vec2 bottom = entity->planet->position + vec2(sin(entity->angle), cos(entity->angle)) * (entity->planet->radius + entity->offset);
-    draw_rectangle(entity->texture, bottom, entity->size, entity->angle, entity->flags & ENTITY_FLAG_FLIP);
+    draw_rectangle(entity->texture, bottom, entity->size, entity->angle + entity->angle_offset, entity->flags & ENTITY_FLAG_FLIP);
 }

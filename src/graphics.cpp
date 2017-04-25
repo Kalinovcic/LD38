@@ -114,6 +114,7 @@ void create_atlas()
     add_texture(TEXTURE_PLAYER_FALL, "playerfall.png");
     add_texture(TEXTURE_FIREBOI, "fireboi.png");
     add_texture(TEXTURE_FIREBOI_ATTACK, "fireboiattack.png");
+    add_texture(TEXTURE_MISSILE, "missile.png");
     add_texture(TEXTURE_PLANT1, "plant1.png");
     add_texture(TEXTURE_PLANT2, "plant2.png");
     add_texture(TEXTURE_PLANT3, "plant3.png");
@@ -304,7 +305,7 @@ void load_font(Font* font, char* name)
 
     auto alphamap = (uint8*) malloc(FONT_BITMAP_SIZE * FONT_BITMAP_SIZE);
     defer(free(alphamap));
-    stbtt_BakeFontBitmap(ttf, 0, 32.0, alphamap, FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, 32, 96, &font->cdata[0]);
+    stbtt_BakeFontBitmap(ttf, 0, 64.0, alphamap, FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, 32, 96, &font->cdata[0]);
 
     auto bitmap = (uint8*) malloc(FONT_BITMAP_SIZE * FONT_BITMAP_SIZE * 4);
     defer(free(bitmap));
@@ -328,6 +329,7 @@ void load_font(Font* font, char* name)
 
 void render_string(Font* font, float x, float y, float scale, char* text)
 {
+    scale *= 0.5;
     end_batch();
     begin_batch(font->texture, true);
 
@@ -340,10 +342,10 @@ void render_string(Font* font, float x, float y, float scale, char* text)
             stbtt_GetBakedQuad(&font->cdata[0], FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, *text - 32, &tx, &ty, &q, 1);
 
             Vertex rectangle[4];
-            rectangle[0] = { x + scale * q.x0, y + scale * q.y0, q.s0, q.t1 };
-            rectangle[1] = { x + scale * q.x1, y + scale * q.y0, q.s1, q.t1 };
-            rectangle[2] = { x + scale * q.x1, y + scale * q.y1, q.s1, q.t0 };
-            rectangle[3] = { x + scale * q.x0, y + scale * q.y1, q.s0, q.t0 };
+            rectangle[0] = { x + scale * q.x0, y - scale * q.y0, q.s0, q.t0 };
+            rectangle[1] = { x + scale * q.x1, y - scale * q.y0, q.s1, q.t0 };
+            rectangle[2] = { x + scale * q.x1, y - scale * q.y1, q.s1, q.t1 };
+            rectangle[3] = { x + scale * q.x0, y - scale * q.y1, q.s0, q.t1 };
 
             batch_triangle(rectangle[0], rectangle[1], rectangle[2]);
             batch_triangle(rectangle[0], rectangle[3], rectangle[2]);
@@ -365,7 +367,7 @@ void render_string_centered(Font* font, float x, float y, float scale, char* tex
             stbtt_GetBakedQuad(&font->cdata[0], FONT_BITMAP_SIZE, FONT_BITMAP_SIZE, *t - 32, &tx, &ty, &q, 1);
         t++;
     }
-    render_string(font, x - tx * 0.5, y, scale, text);
+    render_string(font, x - tx * scale * 0.25, y, scale, text);
 }
 
 //////////////////

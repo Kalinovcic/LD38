@@ -101,7 +101,7 @@ void handle_events()
             if (scancode == SDL_SCANCODE_LEFT)  input_left  = down;
             if (scancode == SDL_SCANCODE_RIGHT) input_right = down;
             if (scancode == SDL_SCANCODE_SPACE) input_space = down;
-            if (scancode == SDL_SCANCODE_F4) input_skip_level = down;
+            if (scancode == SDL_SCANCODE_ESCAPE) input_escape = down;
             if (down && scancode == SDL_SCANCODE_F5)
             {
                 auto flags = SDL_GetWindowFlags(the_window);
@@ -110,6 +110,8 @@ void handle_events()
                 else
                     SDL_SetWindowFullscreen(the_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
             }
+            if (down && scancode == SDL_SCANCODE_F6 && event.key.keysym.mod & KMOD_LSHIFT) sound = !sound;
+            if (scancode == SDL_SCANCODE_F12) input_skip_level = down;
         } break;
         }
     }
@@ -121,9 +123,8 @@ void entry()
     init();
 
     Planet planet;
-    current_level_index = 1;
-    load_level(&planet, current_level_index);
-    camera_position = -planet.position;
+    state = STATE_TITLE;
+    state_time = 0;
 
     while (!game_requests_close)
     {

@@ -113,8 +113,13 @@ void place_platforms(Planet* planet, Texture texture, float width, float angle_f
     float radius = planet->radius + offset;
     float angle_width = 2 * atan((width / 2) / radius);
     e.angle = angle_from + angle_width * 0.5;
+    int index = 0;
     while (e.angle < angle_to)
     {
+        e.flags = 0;
+        if ((index % 8) != 0)
+            e.flags |= ENTITY_FLAG_MUTE;
+        index++;
         planet->entities.push_back(e);
         e.angle += angle_width;
     }

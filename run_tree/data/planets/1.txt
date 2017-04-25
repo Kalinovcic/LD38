@@ -1,3 +1,4 @@
+# hint:             h <text>
 # layer:            l <layer 0 = very back, 1 = back, 2 = actors, 3 = front, 4 = very front>
 # life arc:         a <angle from> <angle width> <base offset>
 # planet radius:    r <radius>
@@ -8,6 +9,7 @@
 # firebridge:       c <angle from> <angle width> <offset>
 # fireboi:          f <angle> <offset> <height>
 
+h Left and right arrow keys to move@Space to jump
 r 500.0
 
 l 3

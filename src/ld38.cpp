@@ -1,4 +1,7 @@
+#define SECURITY_WIN32
 #include <windows.h>
+#include <security.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -84,6 +87,7 @@ enum Texture
 
     TEXTURE_FIREBOI,
     TEXTURE_FIREBOI_ATTACK,
+    TEXTURE_MISSILE,
 
     TEXTURE_PLANT1,
     TEXTURE_PLANT2,
@@ -137,6 +141,7 @@ enum Entity_Kind
     ENTITY_STATIC,
     ENTITY_PLAYER,
     ENTITY_FIREBOI,
+    ENTITY_MISSILE,
     ENTITY_ANGLE_FIRE,
     ENTITY_GRAVITY_BULLET,
 };
@@ -169,6 +174,8 @@ struct Entity
     Layer layer;
     Texture texture;
     Entity_Kind brain;
+    Entity* target = NULL;
+    float angle_offset = 0;
     int frames_alive = 0;
     int frames_idle = 0;
     int frames_action = 0;
@@ -193,6 +200,7 @@ struct Particle
 
 struct Planet
 {
+    vector<char*> hints;
     vec2 position;
     float radius;
     vector<Entity> entities;
@@ -214,6 +222,8 @@ enum Level_State
     STATE_INTRO,
     STATE_SHORT_INTRO,
     STATE_ENDING,
+    STATE_TITLE,
+    STATE_TITLE_STORY,
     STATE_STORY,
 };
 
@@ -233,13 +243,19 @@ Mix_Chunk* sound_grass_life[2];
 Mix_Chunk* sound_bounce;
 Mix_Chunk* sound_fireball;
 Mix_Chunk* sound_fireball_out;
+Mix_Chunk* sound_missile_launch;
+Mix_Chunk* sound_missile_hit;
 
 #define DEG2RAD 0.0174533
 
 int window_width, window_height;
 
+int murder_count;
+bool sound = true;
+
 bool input_left;
 bool input_right;
+bool input_escape;
 bool input_space;
 bool input_skip_level;
 
